@@ -357,6 +357,7 @@ function _readAddr(address target, bytes memory data) internal view returns (add
 
     snap = nftData[id];
     _assertInv(snap);
+    require(snap.level > 1, "L1_STAKE");
 
     // ✅ Effects
     _burn(id);
@@ -385,6 +386,7 @@ function _readAddr(address target, bytes memory data) internal view returns (add
 
     // ✅ APR sanity: base APR in your protocol is 10%..2% => 1000..200 bps
     require(baseAprBpsAtStake >= 200 && baseAprBpsAtStake <= 1000, "APR");
+    require(snap.level > 1, "L1_STAKE");
 
     bool matured = block.timestamp >= uint256(endTs);
 
@@ -419,12 +421,12 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     pure
     returns (uint256)
 {
-    uint256 levelBonusBps = 0;
-    if (d.level > 1) levelBonusBps = uint256(d.level - 1) * 100;
+    require(d.level > 1, "L1_STAKE");
 
+    uint256 levelBonusBps = uint256(d.level - 1) * 100;
     uint256 aprBps = uint256(baseAprBpsAtStake) + levelBonusBps;
 
-    if (d.isForged && d.level > 1) {
+    if (d.isForged) {
         aprBps += 500;
     }
 

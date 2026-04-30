@@ -29,7 +29,17 @@ describe("xEnchantedStake - basic tests", function () {
     const Forge = await ethers.getContractFactory("xEnchantedForge");
     const forge = await Forge.deploy(await core.getAddress(), await xntd.getAddress());
 
-    // 6) init Core
+    // 6) URI lenses are required before Core init / Stake tokenURI finalization
+    const TokenURILens = await ethers.getContractFactory("xEnchantedTokenURILens");
+    const tokenUriLens = await TokenURILens.deploy(await core.getAddress());
+
+    const StakeTokenURILens = await ethers.getContractFactory("xEnchantedStakeTokenURILens");
+    const stakeTokenUriLens = await StakeTokenURILens.deploy(await stake.getAddress());
+
+    await core.setTokenURILens(await tokenUriLens.getAddress());
+    await stake.setTokenURILens(await stakeTokenUriLens.getAddress());
+
+    // 7) init Core
     await core.init(await xntd.getAddress(), await stake.getAddress(), await forge.getAddress());
 
     return { deployer, alice, xen, core, xntd, stake, forge, initialNominal, initialXenBurn };
@@ -40,24 +50,35 @@ describe("xEnchantedStake - basic tests", function () {
     return (n * a + (b - 1n)) / b;
   }
 
-  it("stake(): burns Core NFT -> mints pNFT (same id), pos active", async function () {
-    const { alice, xen, core, stake } = await deploy();
+  async function mintOrdinaryL2(env) {
+    const { alice, xen, core } = env;
 
-    // mint ordinary L1 id=1
     await xen.faucet(alice.address, ethers.parseEther("1000"));
-    await core.connect(alice).mintWithXEN();
+
+    await core.connect(alice).mintWithXEN(); // id=1, L1
+    await core.connect(alice).mintWithXEN(); // id=2, L1
+    await core.connect(alice).enchant(1, 2); // id=3, L2
+
+    return 3;
+  }
+
+  it("stake(): burns Core L2 NFT -> mints pNFT (same id), pos active", async function () {
+    const env = await deploy();
+    const { alice, core, stake } = env;
+
+    const tokenId = await mintOrdinaryL2(env);
 
     // stake 30 days
-    await core.connect(alice).approve(await stake.getAddress(), 1);
-    await stake.connect(alice).stake(1, 30);
+    await core.connect(alice).approve(await stake.getAddress(), tokenId);
+    await stake.connect(alice).stake(tokenId, 30);
 
     // Core NFT is burned
-    await expect(core.ownerOf(1)).to.be.reverted;
+    await expect(core.ownerOf(tokenId)).to.be.reverted;
 
     // Stake position NFT exists
-    expect(await stake.ownerOf(1)).to.equal(alice.address);
+    expect(await stake.ownerOf(tokenId)).to.equal(alice.address);
 
-    const p = await stake.pos(1);
+    const p = await stake.pos(tokenId);
     const snap = p[0];
     const startTs = p[1];
     const endTs = p[2];
@@ -67,82 +88,90 @@ describe("xEnchantedStake - basic tests", function () {
     expect(active).to.equal(true);
     expect(endTs).to.be.greaterThan(startTs);
 
-    expect(snap.level).to.equal(1);
+    expect(snap.level).to.equal(2);
     expect(snap.isForged).to.equal(false);
     expect(snap.nominal).to.not.equal(0n);
 
     expect(baseAprBps).to.be.greaterThanOrEqual(200);
     expect(baseAprBps).to.be.lessThanOrEqual(1000);
+
+    const view = await stake.getStakeView(tokenId);
+    expect(view.durationDays).to.equal(30);
+    expect(view.levelBonusBps).to.equal(100);
+    expect(view.forgedBonusBps).to.equal(0);
+    expect(view.totalAprBps).to.equal(baseAprBps + 100n);
+    expect(view.expectedReward).to.be.greaterThan(0n);
+    expect(view.availableReward).to.equal(0n);
   });
 
   it("redeem() after maturity: phoenix-mints Core NFT back + mints XNTD reward", async function () {
-    const { alice, xen, core, stake, xntd } = await deploy();
+    const env = await deploy();
+    const { alice, core, stake, xntd } = env;
 
-    // mint L1 id=1
-    await xen.faucet(alice.address, ethers.parseEther("1000"));
-    await core.connect(alice).mintWithXEN();
-    const d0 = await core.nftData(1);
+    const tokenId = await mintOrdinaryL2(env);
+    const d0 = await core.nftData(tokenId);
     const nominal0 = d0.nominal;
 
     // stake 30 days
-    await core.connect(alice).approve(await stake.getAddress(), 1);
-    await stake.connect(alice).stake(1, 30);
+    await core.connect(alice).approve(await stake.getAddress(), tokenId);
+    await stake.connect(alice).stake(tokenId, 30);
 
-    const pos = await stake.pos(1);
-    const snap = pos[0];
+    const pos = await stake.pos(tokenId);
     const endTs = BigInt(pos[2]);
 
     // jump to maturity
     await time.increaseTo(endTs + 1n);
 
-    // use previewRedeem to compute expected reward (same formula as contract)
-    const prev = await stake.previewRedeem(1);
+    // previewRedeem returns expectedReward and availableReward separately
+    const prev = await stake.previewRedeem(tokenId);
     expect(prev[0]).to.equal(true);  // active
     expect(prev[1]).to.equal(true);  // matured
-    const rewardExpected = prev[5];
+    const rewardExpected = prev[6];  // expectedReward
+    const rewardAvailable = prev[7]; // availableReward
+    expect(rewardAvailable).to.equal(rewardExpected);
 
     const xBefore = await xntd.balanceOf(alice.address);
 
-    await stake.connect(alice).redeem(1);
+    await stake.connect(alice).redeem(tokenId);
 
     // pNFT burned
-    await expect(stake.ownerOf(1)).to.be.reverted;
+    await expect(stake.ownerOf(tokenId)).to.be.reverted;
 
     // Core NFT back
-    expect(await core.ownerOf(1)).to.equal(alice.address);
+    expect(await core.ownerOf(tokenId)).to.equal(alice.address);
 
-    const d1 = await core.nftData(1);
+    const d1 = await core.nftData(tokenId);
     expect(d1.nominal).to.equal(nominal0); // matured => no penalty
 
     // XNTD reward minted
     const xAfter = await xntd.balanceOf(alice.address);
-    expect(xAfter - xBefore).to.equal(rewardExpected);
+    expect(xAfter - xBefore).to.equal(rewardAvailable);
   });
 
   it("redeem() early: phoenix-mints Core NFT back with 1% penalty (ceil), reward=0", async function () {
-    const { alice, xen, core, stake, xntd } = await deploy();
+    const env = await deploy();
+    const { alice, core, stake, xntd } = env;
 
-    // mint L1 id=1
-    await xen.faucet(alice.address, ethers.parseEther("1000"));
-    await core.connect(alice).mintWithXEN();
-    const d0 = await core.nftData(1);
+    const tokenId = await mintOrdinaryL2(env);
+    const d0 = await core.nftData(tokenId);
     const nominal0 = d0.nominal;
 
     // stake 30 days then redeem immediately (not matured)
-    await core.connect(alice).approve(await stake.getAddress(), 1);
-    await stake.connect(alice).stake(1, 30);
+    await core.connect(alice).approve(await stake.getAddress(), tokenId);
+    await stake.connect(alice).stake(tokenId, 30);
 
     const xBefore = await xntd.balanceOf(alice.address);
 
-    const prev = await stake.previewRedeem(1);
+    const prev = await stake.previewRedeem(tokenId);
     expect(prev[0]).to.equal(true);   // active
     expect(prev[1]).to.equal(false);  // not matured
-    expect(prev[5]).to.equal(0n);     // reward 0
+    expect(prev[6]).to.be.greaterThan(0n); // expectedReward exists before maturity
+    expect(prev[7]).to.equal(0n);     // availableReward 0 before maturity
 
-    await stake.connect(alice).redeem(1);
+    await stake.connect(alice).redeem(tokenId);
 
     // Core NFT back
-    expect(await core.ownerOf(1)).to.equal(alice.address);
+    expect(await core.ownerOf(tokenId)).to.equal(alice.address);
 
     // reward still 0
     const xAfter = await xntd.balanceOf(alice.address);
@@ -150,11 +179,11 @@ describe("xEnchantedStake - basic tests", function () {
 
     // penalty is ceil(nominal * 9900 / 10000)
     const expectedNomAfter = ceilMulDiv(nominal0, 9900n, 10_000n);
-    const d1 = await core.nftData(1);
+    const d1 = await core.nftData(tokenId);
     expect(d1.nominal).to.equal(expectedNomAfter);
   });
 
-  it("forged L2 maturity reward includes +500 bps bonus (forged && level>1)", async function () {
+  it("forged L2 maturity reward includes +500 bps bonus", async function () {
     const { alice, xen, core, stake, forge, xntd } = await deploy();
 
     // prepare XEN for multiple mints
@@ -194,6 +223,11 @@ describe("xEnchantedStake - basic tests", function () {
     await core.connect(alice).approve(await stake.getAddress(), forgedL2);
     await stake.connect(alice).stake(forgedL2, 30);
 
+    const view = await stake.getStakeView(forgedL2);
+    expect(view.levelBonusBps).to.equal(100);
+    expect(view.forgedBonusBps).to.equal(500);
+    expect(view.totalAprBps).to.equal(view.baseAprBps + 600n);
+
     const pos = await stake.pos(forgedL2);
     const endTs = BigInt(pos[2]);
 
@@ -202,12 +236,14 @@ describe("xEnchantedStake - basic tests", function () {
     // expected reward from previewRedeem
     const prev = await stake.previewRedeem(forgedL2);
     expect(prev[1]).to.equal(true); // matured
-    const rewardExpected = prev[5];
+    const rewardExpected = prev[6];
+    const rewardAvailable = prev[7];
+    expect(rewardAvailable).to.equal(rewardExpected);
 
     const xBefore = await xntd.balanceOf(alice.address);
     await stake.connect(alice).redeem(forgedL2);
     const xAfter = await xntd.balanceOf(alice.address);
 
-    expect(xAfter - xBefore).to.equal(rewardExpected);
+    expect(xAfter - xBefore).to.equal(rewardAvailable);
   });
 });

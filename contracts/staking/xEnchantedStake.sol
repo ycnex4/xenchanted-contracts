@@ -57,14 +57,9 @@ interface IStakeTokenURILens {
  * xEnchantedStake
  * - ERC-721 position NFT (tradeable)
  * - tokenId == original NFT id
- * - stake(): burns original in Core, mints position to user, stores snapshot + times + baseAprBpsAtStake
+ * - L1 Core/Forged cannot be staked
+ * - stake(): burns original in Core, mints position to user, stores snapshot + times + base APR
  * - redeem(): burns position, calls Core to phoenix-mint original back to current owner and mint rewards if matured
- *
- * PATCH:
- * - free duration choice: 30..730 days (2 years) with 1-day step
- * - removed durations[] / durationsCount()
- * - CEI: write pos BEFORE _safeMint (safeMint may call onERC721Received)
- * - uint32 timestamp safety
  */
 contract xEnchantedStake is ERC721, ReentrancyGuard {
     IxEnchantedNFT public immutable CORE;
@@ -72,37 +67,65 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
     address public TOKEN_URI_LENS;
 
     struct Pos {
-        IxEnchantedNFT.NFTData snap; // snapshot at stake
+        IxEnchantedNFT.NFTData snap;
         uint32 startTs;
         uint32 endTs;
-        uint16 baseAprBps;           // fixed at stake time
+        uint16 baseAprBps;
         bool active;
     }
 
     struct StakeView {
         uint256 tokenId;
         address owner;
-        uint8 level;
         bool isForged;
+        uint8 level;
         uint256 nominal;
         uint32 startTs;
         uint32 endTs;
-        uint16 baseAprBps;
+        uint16 durationDays;
         bool active;
         bool matured;
-        uint256 rewardIfMatured;
-        uint256 nominalIfEarly;
+        uint16 baseAprBps;
+        uint16 levelBonusBps;
+        uint16 forgedBonusBps;
+        uint16 totalAprBps;
+        uint256 expectedReward;
+        uint256 availableReward;
+        uint256 earlyRedeemNominal;
+        uint256 maturityRedeemNominal;
     }
 
-    // tokenId => position
     mapping(uint256 => Pos) public pos;
 
-    // free duration bounds (days)
     uint16 public constant MIN_DAYS = 30;
-    uint16 public constant MAX_DAYS = 730; // 2 years
+    uint16 public constant MAX_DAYS = 730;
 
-    event Stake(uint256 indexed id, address indexed owner, uint32 startTs, uint32 endTs, uint16 baseAprBps);
-    event Redeem(uint256 indexed id, address indexed owner, bool matured);
+    uint256 public constant BPS_DENOM = 10_000;
+    uint16 public constant LEVEL_BONUS_STEP_BPS = 100;
+    uint16 public constant FORGED_BONUS_BPS = 500;
+    uint256 public constant EARLY_PENALTY_BPS = 100;
+
+    event Staked(
+        address indexed user,
+        uint256 indexed tokenId,
+        bool isForged,
+        uint8 level,
+        uint256 nominal,
+        uint16 durationDays,
+        uint32 startTs,
+        uint32 endTs,
+        uint16 baseAprBps,
+        uint16 totalAprBps,
+        uint256 expectedReward
+    );
+
+    event StakeRedeemed(
+        address indexed user,
+        uint256 indexed tokenId,
+        bool matured,
+        uint256 reward,
+        uint256 remintedNominal
+    );
 
     modifier onlyDeployer() {
         require(msg.sender == DEPLOYER, "DEP");
@@ -121,44 +144,33 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         require(lens.code.length != 0, "URI_CODE");
 
         TOKEN_URI_LENS = lens;
-
-        // burn deployer rights permanently after lens is wired
         DEPLOYER = address(0);
     }
 
     function tokenURI(uint256 id) public view override returns (string memory) {
-        ownerOf(id); // revert if token does not exist
+        ownerOf(id);
         require(TOKEN_URI_LENS != address(0), "URI");
         return IStakeTokenURILens(TOKEN_URI_LENS).tokenURI(id);
     }
 
-    /// @notice Stake with any duration in whole days (1-day step), from 30 to 730 days.
     function stake(uint256 id, uint16 durationDays) external nonReentrant {
         require(durationDays >= MIN_DAYS, "DUR_MIN");
         require(durationDays <= MAX_DAYS, "DUR_MAX");
-
-        // timestamp must fit uint32 (protocol uses uint32 in positions)
         require(block.timestamp <= type(uint32).max, "TS32");
 
-        require(_ownerOf(id) == address(0), "EX"); // no active position token
-        require(!pos[id].active, "ACT");           // double safety
+        require(_ownerOf(id) == address(0), "EX");
+        require(!pos[id].active, "ACT");
 
-        // fix base APR at stake time for predictability/tradeability
         uint16 baseApr = CORE.baseAprBpsNow();
 
-        // burn original in Core and receive snapshot (Core enforces ownership)
         IxEnchantedNFT.NFTData memory snap = CORE.burnForStaking(id, msg.sender);
+        require(snap.level > 1, "L1_STAKE");
 
         uint32 startTs = uint32(block.timestamp);
-
-        // 1-day step enforced by integer durationDays
         uint32 durationSec = uint32(uint256(durationDays) * 1 days);
         uint32 endTs = startTs + durationSec;
-
-        // overflow / sanity
         require(endTs > startTs, "TS");
 
-        // ✅ CEI: commit state BEFORE _safeMint (safeMint may call onERC721Received)
         pos[id] = Pos({
             snap: snap,
             startTs: startTs,
@@ -167,10 +179,24 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
             active: true
         });
 
-        // mint position NFT with SAME id
         _safeMint(msg.sender, id);
 
-        emit Stake(id, msg.sender, startTs, endTs, baseApr);
+        (, , uint16 totalAprBps) = _aprBreakdown(snap, baseApr);
+        uint256 expectedReward = _calcReward(snap.nominal, totalAprBps, durationSec);
+
+        emit Staked(
+            msg.sender,
+            id,
+            snap.isForged,
+            snap.level,
+            snap.nominal,
+            durationDays,
+            startTs,
+            endTs,
+            baseApr,
+            totalAprBps,
+            expectedReward
+        );
     }
 
     function redeem(uint256 id) external nonReentrant {
@@ -178,9 +204,13 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
 
         Pos memory p = pos[id];
         require(p.active, "NA");
-        require(p.endTs > p.startTs, "TS"); // safety
+        require(p.endTs > p.startTs, "TS");
 
         bool matured = block.timestamp >= uint256(p.endTs);
+        uint256 durationSec = uint256(p.endTs) - uint256(p.startTs);
+        (, , uint16 totalAprBps) = _aprBreakdown(p.snap, p.baseAprBps);
+        uint256 reward = matured ? _calcReward(p.snap.nominal, totalAprBps, durationSec) : 0;
+        uint256 remintedNominal = matured ? p.snap.nominal : _earlyRedeemNominal(p.snap.nominal);
 
         _burn(id);
         delete pos[id];
@@ -194,59 +224,65 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
             p.baseAprBps
         );
 
-        emit Redeem(id, msg.sender, matured);
+        emit StakeRedeemed(msg.sender, id, matured, reward, remintedNominal);
     }
 
     function previewRedeem(uint256 id)
         external
         view
-        returns (bool active, bool matured, uint32 startTs, uint32 endTs, uint16 baseAprBps, uint256 reward)
+        returns (
+            bool active,
+            bool matured,
+            uint32 startTs,
+            uint32 endTs,
+            uint16 baseAprBps,
+            uint16 totalAprBps,
+            uint256 expectedReward,
+            uint256 availableReward,
+            uint256 earlyRedeemNominal,
+            uint256 maturityRedeemNominal
+        )
     {
         Pos memory p = pos[id];
         active = p.active;
 
-        if (!active) {
-            return (false, false, 0, 0, 0, 0);
+        if (!active || p.endTs <= p.startTs) {
+            return (false, false, 0, 0, 0, 0, 0, 0, 0, 0);
         }
 
         startTs = p.startTs;
         endTs = p.endTs;
         baseAprBps = p.baseAprBps;
-
-        // hard safety (same spirit as Core)
-        if (endTs <= startTs) {
-            // treat as not matured and reward 0 (position is abnormal, but view stays safe)
-            return (true, false, startTs, endTs, baseAprBps, 0);
-        }
-
         matured = block.timestamp >= uint256(endTs);
 
-        if (!matured) {
-            // no partial rewards
-            return (true, false, startTs, endTs, baseAprBps, 0);
-        }
+        uint256 durationSec = uint256(endTs) - uint256(startTs);
+        (, , uint16 _totalAprBps) = _aprBreakdown(p.snap, baseAprBps);
+        totalAprBps = _totalAprBps;
 
-        // reward = nominal * aprBps * duration / (365d * 10000)
-        uint256 levelBonusBps = 0;
-        if (p.snap.level > 1) levelBonusBps = uint256(p.snap.level - 1) * 100;
+        expectedReward = _calcReward(p.snap.nominal, totalAprBps, durationSec);
+        availableReward = matured ? expectedReward : 0;
+        earlyRedeemNominal = matured ? 0 : _earlyRedeemNominal(p.snap.nominal);
+        maturityRedeemNominal = p.snap.nominal;
 
-        uint256 aprBps = uint256(baseAprBps) + levelBonusBps;
-
-        if (p.snap.isForged && p.snap.level > 1) {
-            aprBps += 500; // +5%
-        }
-
-        uint256 dur = uint256(endTs) - uint256(startTs);
-        reward = Math.mulDiv(p.snap.nominal, aprBps * dur, 365 days * 10_000);
-
-        return (true, true, startTs, endTs, baseAprBps, reward);
+        return (
+            true,
+            matured,
+            startTs,
+            endTs,
+            baseAprBps,
+            totalAprBps,
+            expectedReward,
+            availableReward,
+            earlyRedeemNominal,
+            maturityRedeemNominal
+        );
     }
 
     function getPos(uint256 id) external view returns (Pos memory) {
         return pos[id];
     }
 
-        function walletOfOwner(address owner) external view returns (uint256[] memory) {
+    function walletOfOwner(address owner) external view returns (uint256[] memory) {
         require(owner != address(0), "OW0");
 
         uint256 upper = CORE.nextId();
@@ -286,7 +322,7 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
             uint16 totalAprBps,
             uint32 startTs,
             uint32 endTs,
-            uint256 rewardIfMatured
+            uint256 expectedReward
         )
     {
         if (durationDays < MIN_DAYS) {
@@ -319,21 +355,23 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
 
         createdAt; forgedAt; xenBurned; xntdBurned; parentId1; parentId2;
 
+        if (_level <= 1) {
+            return (false, "L1_STAKE", _isForged, _level, _nominal, 0, 0, 0, 0, 0, 0, 0);
+        }
+
         uint16 _baseAprBps = CORE.baseAprBpsNow();
-        uint16 _levelBonusBps = _level > 1 ? uint16(uint256(_level - 1) * 100) : 0;
-        uint16 _forgedBonusBps = (_isForged && _level > 1) ? 500 : 0;
-        uint16 _totalAprBps = _baseAprBps + _levelBonusBps + _forgedBonusBps;
+        (uint16 _levelBonusBps, uint16 _forgedBonusBps, uint16 _totalAprBps) = _aprBreakdownRaw(
+            _level,
+            _isForged,
+            _baseAprBps
+        );
 
         require(block.timestamp <= type(uint32).max, "TS32V");
         uint32 _startTs = uint32(block.timestamp);
         uint32 _endTs = _startTs + uint32(uint256(durationDays) * 1 days);
 
         uint256 dur = uint256(_endTs) - uint256(_startTs);
-        uint256 _rewardIfMatured = Math.mulDiv(
-            _nominal,
-            uint256(_totalAprBps) * dur,
-            365 days * 10_000
-        );
+        uint256 _expectedReward = _calcReward(_nominal, _totalAprBps, dur);
 
         return (
             true,
@@ -347,54 +385,14 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
             _totalAprBps,
             _startTs,
             _endTs,
-            _rewardIfMatured
+            _expectedReward
         );
     }
 
     function getStakeView(uint256 id) external view returns (StakeView memory) {
         address owner = ownerOf(id);
         Pos memory p = pos[id];
-
-        bool matured = p.active && block.timestamp >= uint256(p.endTs);
-        uint256 rewardIfMatured = 0;
-
-        if (p.active && matured && p.endTs > p.startTs) {
-            uint256 levelBonusBps = 0;
-            if (p.snap.level > 1) levelBonusBps = uint256(p.snap.level - 1) * 100;
-
-            uint256 aprBps = uint256(p.baseAprBps) + levelBonusBps;
-            if (p.snap.isForged && p.snap.level > 1) {
-                aprBps += 500;
-            }
-
-            uint256 dur = uint256(p.endTs) - uint256(p.startTs);
-            rewardIfMatured = Math.mulDiv(p.snap.nominal, aprBps * dur, 365 days * 10_000);
-        }
-
-        uint256 nominalIfEarly = Math.mulDiv(
-            p.snap.nominal,
-            9900,
-            10_000,
-            Math.Rounding.Ceil
-        );
-        if (nominalIfEarly == 0 && p.snap.nominal != 0) {
-            nominalIfEarly = 1;
-        }
-
-        return StakeView({
-            tokenId: id,
-            owner: owner,
-            level: p.snap.level,
-            isForged: p.snap.isForged,
-            nominal: p.snap.nominal,
-            startTs: p.startTs,
-            endTs: p.endTs,
-            baseAprBps: p.baseAprBps,
-            active: p.active,
-            matured: matured,
-            rewardIfMatured: rewardIfMatured,
-            nominalIfEarly: nominalIfEarly
-        });
+        return _buildStakeView(id, owner, p);
     }
 
     function getStakeViews(uint256[] calldata ids) external view returns (StakeView[] memory views_) {
@@ -404,47 +402,81 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
             uint256 id = ids[i];
             address owner = ownerOf(id);
             Pos memory p = pos[id];
-
-            bool matured = p.active && block.timestamp >= uint256(p.endTs);
-            uint256 rewardIfMatured = 0;
-
-            if (p.active && matured && p.endTs > p.startTs) {
-                uint256 levelBonusBps = 0;
-                if (p.snap.level > 1) levelBonusBps = uint256(p.snap.level - 1) * 100;
-
-                uint256 aprBps = uint256(p.baseAprBps) + levelBonusBps;
-                if (p.snap.isForged && p.snap.level > 1) {
-                    aprBps += 500;
-                }
-
-                uint256 dur = uint256(p.endTs) - uint256(p.startTs);
-                rewardIfMatured = Math.mulDiv(p.snap.nominal, aprBps * dur, 365 days * 10_000);
-            }
-
-            uint256 nominalIfEarly = Math.mulDiv(
-                p.snap.nominal,
-                9900,
-                10_000,
-                Math.Rounding.Ceil
-            );
-            if (nominalIfEarly == 0 && p.snap.nominal != 0) {
-                nominalIfEarly = 1;
-            }
-
-            views_[i] = StakeView({
-                tokenId: id,
-                owner: owner,
-                level: p.snap.level,
-                isForged: p.snap.isForged,
-                nominal: p.snap.nominal,
-                startTs: p.startTs,
-                endTs: p.endTs,
-                baseAprBps: p.baseAprBps,
-                active: p.active,
-                matured: matured,
-                rewardIfMatured: rewardIfMatured,
-                nominalIfEarly: nominalIfEarly
-            });
+            views_[i] = _buildStakeView(id, owner, p);
         }
+    }
+
+    function _buildStakeView(uint256 id, address owner, Pos memory p) internal view returns (StakeView memory) {
+        bool active = p.active && p.endTs > p.startTs;
+        bool matured = active && block.timestamp >= uint256(p.endTs);
+
+        uint16 durationDays = 0;
+        uint16 levelBonusBps = 0;
+        uint16 forgedBonusBps = 0;
+        uint16 totalAprBps = 0;
+        uint256 expectedReward = 0;
+        uint256 availableReward = 0;
+        uint256 earlyRedeemNominal = 0;
+        uint256 maturityRedeemNominal = 0;
+
+        if (active) {
+            uint256 durationSec = uint256(p.endTs) - uint256(p.startTs);
+            durationDays = uint16(durationSec / 1 days);
+            (levelBonusBps, forgedBonusBps, totalAprBps) = _aprBreakdown(p.snap, p.baseAprBps);
+            expectedReward = _calcReward(p.snap.nominal, totalAprBps, durationSec);
+            availableReward = matured ? expectedReward : 0;
+            earlyRedeemNominal = matured ? 0 : _earlyRedeemNominal(p.snap.nominal);
+            maturityRedeemNominal = p.snap.nominal;
+        }
+
+        return StakeView({
+            tokenId: id,
+            owner: owner,
+            isForged: p.snap.isForged,
+            level: p.snap.level,
+            nominal: p.snap.nominal,
+            startTs: p.startTs,
+            endTs: p.endTs,
+            durationDays: durationDays,
+            active: p.active,
+            matured: matured,
+            baseAprBps: p.baseAprBps,
+            levelBonusBps: levelBonusBps,
+            forgedBonusBps: forgedBonusBps,
+            totalAprBps: totalAprBps,
+            expectedReward: expectedReward,
+            availableReward: availableReward,
+            earlyRedeemNominal: earlyRedeemNominal,
+            maturityRedeemNominal: maturityRedeemNominal
+        });
+    }
+
+    function _aprBreakdown(IxEnchantedNFT.NFTData memory snap, uint16 baseAprBps)
+        internal
+        pure
+        returns (uint16 levelBonusBps, uint16 forgedBonusBps, uint16 totalAprBps)
+    {
+        return _aprBreakdownRaw(snap.level, snap.isForged, baseAprBps);
+    }
+
+    function _aprBreakdownRaw(uint8 level, bool isForged, uint16 baseAprBps)
+        internal
+        pure
+        returns (uint16 levelBonusBps, uint16 forgedBonusBps, uint16 totalAprBps)
+    {
+        require(level > 1, "L1_STAKE");
+
+        levelBonusBps = uint16(uint256(level - 1) * LEVEL_BONUS_STEP_BPS);
+        forgedBonusBps = isForged ? FORGED_BONUS_BPS : 0;
+        totalAprBps = baseAprBps + levelBonusBps + forgedBonusBps;
+    }
+
+    function _calcReward(uint256 nominal, uint16 totalAprBps, uint256 durationSec) internal pure returns (uint256) {
+        return Math.mulDiv(nominal, uint256(totalAprBps) * durationSec, 365 days * BPS_DENOM);
+    }
+
+    function _earlyRedeemNominal(uint256 nominal) internal pure returns (uint256 out) {
+        out = Math.mulDiv(nominal, BPS_DENOM - EARLY_PENALTY_BPS, BPS_DENOM, Math.Rounding.Ceil);
+        if (out == 0 && nominal != 0) out = 1;
     }
 }
