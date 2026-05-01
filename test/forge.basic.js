@@ -123,16 +123,25 @@ describe("xEnchantedForge - basic tests", function () {
     expect(afterBal).to.equal(beforeBal - xntdAmount);
   });
 
-  it("forge() reverts if ALLOW (no allowance)", async function () {
-    const env = await deploy();
-    const { alice, forge } = env;
+  it("forge() does not require ERC20 approval", async function () {
+  const env = await deploy();
+  const { alice, core, xntd, forge } = env;
 
-    const minAmt = await forge.minForgeAmount();
-    await fundXntd(env, minAmt);
-    const baseId = await mintL1(env, alice);
+  const minAmt = await forge.minForgeAmount();
 
-    await expect(forge.connect(alice).forge(baseId, minAmt)).to.be.revertedWith("ALLOW");
-  });
+  await fundXntd(env, minAmt);
+
+  const beforeBal = await xntd.balanceOf(alice.address);
+  const baseId = await mintL1(env, alice);
+
+  expect(await xntd.allowance(alice.address, await forge.getAddress())).to.equal(0n);
+
+  await forge.connect(alice).forge(baseId, minAmt);
+
+  await expect(core.ownerOf(baseId)).to.be.reverted;
+  expect(await xntd.balanceOf(alice.address)).to.equal(beforeBal - minAmt);
+  expect(await xntd.forgeBurned()).to.equal(minAmt);
+});
 
   it("forge() reverts if xntdAmount < MIN", async function () {
     const env = await deploy();

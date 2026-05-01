@@ -11,6 +11,7 @@ interface IXENToken {
 interface IXNTDToken {
     function mint(address to, uint256 amount) external;
     function CORE() external view returns (address);
+    function bindForge(address forge) external;
 }
 
 interface IBurnRedeemable {
@@ -169,6 +170,10 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
 
     // -------- handshake: XNTD must be wired to this Core --------
     require(IXNTDToken(xntd).CORE() == address(this), "XNTD_CORE");
+
+    // Bind Forge in XNTD once. This enables Forge burn without ERC20 approve,
+    // while keeping the path immutable/no-admin after Core.init(...).
+    IXNTDToken(xntd).bindForge(forge);
 
     // commit wiring
     XNTD = IXNTDToken(xntd);

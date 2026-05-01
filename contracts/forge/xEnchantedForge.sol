@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-interface IERC20BurnFrom {
-    function burnFrom(address account, uint256 amount) external;
-    function allowance(address owner, address spender) external view returns (uint256);
+interface IXNTDForgeBurner {
+    function burnForForge(address user, uint256 amount) external;
 }
 
 interface IxEnchantedNFTForgeHook {
@@ -56,7 +55,7 @@ interface IxEnchantedNFTForgeHook {
  */
 contract xEnchantedForge {
     IxEnchantedNFTForgeHook public immutable CORE;
-    IERC20BurnFrom public immutable XNTD;
+    IXNTDForgeBurner public immutable XNTD;
 
     uint16 public constant MIN_FORGE_MULTIPLIER = 5;
     uint16 public constant MAX_FORGE_MULTIPLIER = 1000;
@@ -85,12 +84,11 @@ contract xEnchantedForge {
         require(core != address(0), "C0");
         require(xntd != address(0), "T0");
         CORE = IxEnchantedNFTForgeHook(core);
-        XNTD = IERC20BurnFrom(xntd);
+        XNTD = IXNTDForgeBurner(xntd);
     }
 
     function forge(uint256 baseId, uint256 xntdAmount) external returns (uint256 forgedId) {
         require(xntdAmount != 0, "Z");
-        require(XNTD.allowance(msg.sender, address(this)) >= xntdAmount, "ALLOW");
 
         uint256 base = CORE.currentBaseNominal();
         uint256 minAmt = base * MIN_FORGE_MULTIPLIER;
@@ -102,8 +100,9 @@ contract xEnchantedForge {
         // burn base L1 (Core validates owner + ordinary + level==1)
         CORE.burnL1ForForge(baseId, msg.sender);
 
-        // burn XNTD from user (requires allowance)
-        XNTD.burnFrom(msg.sender, xntdAmount);
+        // burn XNTD from user through the bound Forge path.
+        // No ERC20 approve/spending-cap transaction is required.
+        XNTD.burnForForge(msg.sender, xntdAmount);
 
         // mint forged NFT in Core
         // nominal == burned XNTD
