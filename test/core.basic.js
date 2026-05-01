@@ -33,6 +33,19 @@ describe("xEnchantedNFT Core - basic flow with XEN burn()", function () {
     await forge.waitForDeployment();
 
     // 6) init Core
+    // 6) Deploy URI lens contracts and wire them before Core init
+    const TokenURILens = await ethers.getContractFactory("xEnchantedTokenURILens");
+    const tokenUriLens = await TokenURILens.deploy(await core.getAddress());
+    await tokenUriLens.waitForDeployment();
+
+    const StakeTokenURILens = await ethers.getContractFactory("xEnchantedStakeTokenURILens");
+    const stakeTokenUriLens = await StakeTokenURILens.deploy(await stake.getAddress());
+    await stakeTokenUriLens.waitForDeployment();
+
+    await core.setTokenURILens(await tokenUriLens.getAddress());
+    await stake.setTokenURILens(await stakeTokenUriLens.getAddress());
+
+    // 7) init Core
     await (await core.init(await xntd.getAddress(), await stake.getAddress(), await forge.getAddress())).wait();
 
     return { deployer, alice, xen, core, xntd, stake, forge, initialNominal, initialXenBurn };

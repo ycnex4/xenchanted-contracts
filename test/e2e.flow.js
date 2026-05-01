@@ -24,6 +24,19 @@ describe("xEnchanted - end-to-end flow", function () {
     const Forge = await ethers.getContractFactory("xEnchantedForge");
     const forge = await Forge.deploy(await core.getAddress(), await xntd.getAddress());
 
+    // 6) Deploy URI lens contracts and wire them before Core init
+    const TokenURILens = await ethers.getContractFactory("xEnchantedTokenURILens");
+    const tokenUriLens = await TokenURILens.deploy(await core.getAddress());
+    await tokenUriLens.waitForDeployment();
+
+    const StakeTokenURILens = await ethers.getContractFactory("xEnchantedStakeTokenURILens");
+    const stakeTokenUriLens = await StakeTokenURILens.deploy(await stake.getAddress());
+    await stakeTokenUriLens.waitForDeployment();
+
+    await core.setTokenURILens(await tokenUriLens.getAddress());
+    await stake.setTokenURILens(await stakeTokenUriLens.getAddress());
+
+    // 7) init Core
     await core.init(await xntd.getAddress(), await stake.getAddress(), await forge.getAddress());
 
     return { deployer, alice, xen, core, xntd, stake, forge, initialNominal, initialXenBurn };
@@ -82,7 +95,7 @@ describe("xEnchanted - end-to-end flow", function () {
     expect(prevAfter[0]).to.equal(true);
     expect(prevAfter[1]).to.equal(true);
 
-    const rewardExpected = prevAfter[5];
+    const rewardExpected = prevAfter[7];
     const xntdBeforeStakeRedeem = await xntd.balanceOf(alice.address);
 
     // redeem stake
@@ -193,7 +206,7 @@ describe("xEnchanted - end-to-end flow", function () {
   const preview = await stake.previewRedeem(forgedL2);
   expect(preview[1]).to.equal(true); // matured
 
-  const rewardExpected = preview[5];
+  const rewardExpected = preview[7];
 
   const before = await xntd.balanceOf(alice.address);
 
