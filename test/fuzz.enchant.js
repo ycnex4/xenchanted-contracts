@@ -2,15 +2,15 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("Fuzz: enchant()", function () {
+
   async function deploy() {
-    const [deployer, alice] = await ethers.getSigners();
+    const [deployer, alice, bob] = await ethers.getSigners();
 
     const MockXEN = await ethers.getContractFactory("MockXEN");
     const xen = await MockXEN.deploy();
 
     const initialNominal = ethers.parseEther("100");
     const initialXenBurn = ethers.parseEther("10");
-
     const Core = await ethers.getContractFactory("xEnchantedNFT");
     const core = await Core.deploy(await xen.getAddress(), initialNominal, initialXenBurn);
 
@@ -23,7 +23,6 @@ describe("Fuzz: enchant()", function () {
     const Forge = await ethers.getContractFactory("xEnchantedForge");
     const forge = await Forge.deploy(await core.getAddress(), await xntd.getAddress());
 
-    // 6) Deploy URI lens contracts and wire them before Core init
     const TokenURILens = await ethers.getContractFactory("xEnchantedTokenURILens");
     const tokenUriLens = await TokenURILens.deploy(await core.getAddress());
     await tokenUriLens.waitForDeployment();
@@ -35,48 +34,49 @@ describe("Fuzz: enchant()", function () {
     await core.setTokenURILens(await tokenUriLens.getAddress());
     await stake.setTokenURILens(await stakeTokenUriLens.getAddress());
 
-    // 7) init Core
     await core.init(await xntd.getAddress(), await stake.getAddress(), await forge.getAddress());
 
-    return { alice, xen, core, xntd, stake, forge };
+    return { deployer, alice, bob, xen, core, xntd, stake, forge, initialNominal, initialXenBurn };
   }
+
+  async function mintL1(env, who = env.alice) {
+    const { xen, core } = env;
+    await xen.faucet(who.address, ethers.parseEther("1000"));
+    const tx = await core.connect(who).mintWithXEN();
+    const rc = await tx.wait();
+    const log = rc.logs.find((l) => l.fragment && l.fragment.name === "Minted");
+    return log.args.id;
+  }
+
+  async function enchant(env, id1, id2, who = env.alice) {
+    const tx = await env.core.connect(who).enchant(id1, id2);
+    const rc = await tx.wait();
+    const log = rc.logs.find((l) => l.fragment && l.fragment.name === "Enchanted");
+    return log.args.id;
+  }
+
+  async function fundXntd(env, targetAmount) {
+    const { alice, xntd, core } = env;
+    while ((await xntd.balanceOf(alice.address)) < targetAmount) {
+      const id = await mintL1(env, alice);
+      await core.connect(alice).redeem(id);
+    }
+  }
+
+  async function forgeOne(env, amount) {
+    const { alice, xntd, forge } = env;
+    const xntdAmount = amount ?? (await forge.minForgeAmount());
+    await fundXntd(env, xntdAmount);
+    const baseId = await mintL1(env, alice);
+    await xntd.connect(alice).approve(await forge.getAddress(), xntdAmount);
+    const forgedId = await forge.connect(alice).forge.staticCall(baseId, xntdAmount);
+    await forge.connect(alice).forge(baseId, xntdAmount);
+    return forgedId;
+  }
+
 
   function rnd(max) {
     return Math.floor(Math.random() * max);
-  }
-
-  async function makeOrdinaryL1(env) {
-    const { alice, xen, core } = env;
-    await xen.faucet(alice.address, ethers.parseEther("1000"));
-    await core.connect(alice).mintWithXEN();
-  }
-
-  async function makeForgedL1Pair(env) {
-    const { alice, xen, core, xntd, forge } = env;
-
-    await xen.faucet(alice.address, ethers.parseEther("5000"));
-
-    // 1 ordinary -> redeem => XNTD
-    await core.connect(alice).mintWithXEN(); // id=1
-    await core.connect(alice).redeem(1);
-
-    // base ordinary -> forge => forged id=3
-    await core.connect(alice).mintWithXEN(); // id=2
-    const minAmt = await core.currentBaseNominal();
-    await xntd.connect(alice).approve(await forge.getAddress(), minAmt);
-    await forge.connect(alice).forge(2, minAmt);
-    const forgedA = 3;
-
-    // again
-    await core.connect(alice).mintWithXEN(); // id=4
-    await core.connect(alice).redeem(4);
-
-    await core.connect(alice).mintWithXEN(); // id=5
-    await xntd.connect(alice).approve(await forge.getAddress(), minAmt);
-    await forge.connect(alice).forge(5, minAmt);
-    const forgedB = 6;
-
-    return { forgedA, forgedB };
   }
 
   it("fuzz enchant scenarios", async function () {
@@ -84,74 +84,53 @@ describe("Fuzz: enchant()", function () {
 
     for (let i = 0; i < ITERATIONS; i++) {
       const env = await deploy();
-      const { alice, core, xen, xntd, forge } = env;
+      const { alice, core } = env;
 
       const scenario = rnd(5);
 
-      // 0 = SAME
       if (scenario === 0) {
-        await makeOrdinaryL1(env); // id=1
-        await expect(core.connect(alice).enchant(1, 1)).to.be.revertedWith("SAME");
+        const id = await mintL1(env, alice);
+        await expect(core.connect(alice).enchant(id, id)).to.be.revertedWith("SAME");
       }
 
-      // 1 = ordinary + ordinary success
       else if (scenario === 1) {
-        await xen.faucet(alice.address, ethers.parseEther("5000"));
-        await core.connect(alice).mintWithXEN(); // 1
-        await core.connect(alice).mintWithXEN(); // 2
+        const id1 = await mintL1(env, alice);
+        const id2 = await mintL1(env, alice);
 
-        const a = await core.nftData(1);
-        const b = await core.nftData(2);
+        const a = await core.nftData(id1);
+        const b = await core.nftData(id2);
         const expectedNom = ((a.nominal + b.nominal) / 2n) * 3n;
 
-        await core.connect(alice).enchant(1, 2);
+        const newId = await enchant(env, id1, id2, alice);
 
-        expect(await core.ownerOf(3)).to.equal(alice.address);
-        const d = await core.nftData(3);
+        expect(await core.ownerOf(newId)).to.equal(alice.address);
+        const d = await core.nftData(newId);
 
         expect(d.level).to.equal(2);
         expect(d.isForged).to.equal(false);
         expect(d.nominal).to.equal(expectedNom);
       }
 
-      // 2 = LVL mismatch
       else if (scenario === 2) {
-        await xen.faucet(alice.address, ethers.parseEther("5000"));
-        await core.connect(alice).mintWithXEN(); // 1
-        await core.connect(alice).mintWithXEN(); // 2
-        await core.connect(alice).mintWithXEN(); // 3
+        const id1 = await mintL1(env, alice);
+        const id2 = await mintL1(env, alice);
+        const id3 = await mintL1(env, alice);
 
-        await core.connect(alice).enchant(1, 2); // => 4 level 2
+        const l2Id = await enchant(env, id1, id2, alice);
 
-        await expect(core.connect(alice).enchant(4, 3)).to.be.revertedWith("LVL");
+        await expect(core.connect(alice).enchant(l2Id, id3)).to.be.revertedWith("LVL");
       }
 
-      // 3 = TYPE mismatch
       else if (scenario === 3) {
-        await xen.faucet(alice.address, ethers.parseEther("5000"));
+        const forgedId = await forgeOne(env);
+        const ordinaryId = await mintL1(env, alice);
 
-        // ordinary id=1
-        await core.connect(alice).mintWithXEN();
-
-        // get XNTD from another ordinary
-        await core.connect(alice).mintWithXEN(); // id=2
-        await core.connect(alice).redeem(2);
-
-        const minAmt = await core.currentBaseNominal();
-        await xntd.connect(alice).approve(await forge.getAddress(), minAmt);
-
-        // forge using id=1 => forged id=3
-        await forge.connect(alice).forge(1, minAmt);
-
-        // mint new ordinary id=4
-        await core.connect(alice).mintWithXEN();
-
-        await expect(core.connect(alice).enchant(3, 4)).to.be.revertedWith("TYPE");
+        await expect(core.connect(alice).enchant(forgedId, ordinaryId)).to.be.revertedWith("TYPE");
       }
 
-      // 4 = forged + forged success
       else if (scenario === 4) {
-        const { forgedA, forgedB } = await makeForgedL1Pair(env);
+        const forgedA = await forgeOne(env);
+        const forgedB = await forgeOne(env);
 
         const a = await core.nftData(forgedA);
         const b = await core.nftData(forgedB);
@@ -159,13 +138,7 @@ describe("Fuzz: enchant()", function () {
         const expectedNom = a.nominal + b.nominal;
         const expectedBurn = a.xntdBurned + b.xntdBurned;
 
-        const tx = await core.connect(alice).enchant(forgedA, forgedB);
-        const rc = await tx.wait();
-
-        const log = rc.logs.find((l) => l.fragment && l.fragment.name === "Enchanted");
-        expect(log).to.not.equal(undefined);
-
-        const newId = log.args.id;
+        const newId = await enchant(env, forgedA, forgedB, alice);
         const d = await core.nftData(newId);
 
         expect(d.level).to.equal(2);
