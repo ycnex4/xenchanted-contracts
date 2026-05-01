@@ -92,15 +92,59 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
     // --------- events ----------
     event Init(address xntd, address staking, address forge);
 
-    event Minted(uint256 indexed id, address indexed to, uint8 lvl, uint256 nom, bool forged);
-    event Enchanted(uint256 indexed id, uint256 indexed p1, uint256 indexed p2, uint8 lvl, uint256 nom, bool forged);
-    event Redeemed(uint256 indexed id, address indexed owner, uint256 nom);
+    event Minted(
+        uint256 indexed id,
+        address indexed to,
+        uint8 lvl,
+        uint256 nom,
+        bool forged,
+        uint256 xenBurned,
+        uint256 xntdBurned
+    );
+    event Enchanted(
+        uint256 indexed id,
+        uint256 indexed p1,
+        uint256 indexed p2,
+        address owner,
+        uint8 lvl,
+        uint256 nom,
+        bool forged,
+        uint256 xenBurned,
+        uint256 xntdBurned
+    );
+    event Redeemed(
+        uint256 indexed id,
+        address indexed owner,
+        bool indexed forged,
+        uint8 level,
+        uint256 nominal,
+        uint256 xntdMinted
+    );
 
-    event StakeBurn(uint256 indexed id, address indexed owner);
-    event Phoenix(uint256 indexed id, address indexed to, bool matured, uint256 reward, uint256 nomAfter);
+    event StakeBurn(
+        uint256 indexed id,
+        address indexed owner,
+        bool indexed forged,
+        uint8 level,
+        uint256 nominal
+    );
+    event Phoenix(
+        uint256 indexed id,
+        address indexed to,
+        bool indexed matured,
+        bool forged,
+        uint8 level,
+        uint256 reward,
+        uint256 nomAfter
+    );
 
     event ForgeBurn(uint256 indexed id, address indexed owner);
-    event ForgeMint(uint256 indexed id, address indexed to, uint256 nom);
+    event ForgeMint(
+        uint256 indexed id,
+        address indexed to,
+        uint256 nom,
+        uint256 xntdBurned
+    );
 
     // --------- modifiers ----------
     modifier onlyDeployer() {
@@ -265,7 +309,7 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     nftData[id] = nd;      // state first
     _safeMint(msg.sender, id);
 
-    emit Minted(id, msg.sender, 1, nom, false);
+    emit Minted(id, msg.sender, 1, nom, false, nd.xenBurned, nd.xntdBurned);
 }
 
     // --------- enchant (final canon, NO MIXING) ----------
@@ -321,7 +365,7 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     nftData[id] = nd;          // ✅ ОБЯЗАТЕЛЬНО
     _safeMint(msg.sender, id); // ✅ safeMint после state
 
-    emit Enchanted(id, id1, id2, newLvl, newNom, forged);
+    emit Enchanted(id, id1, id2, msg.sender, newLvl, newNom, forged, nd.xenBurned, nd.xntdBurned);
 }
 
     // --------- redeem ----------
@@ -346,7 +390,7 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     // ✅ Interaction (reverts => whole tx reverts, including burn/delete)
     XNTD.mint(msg.sender, nom);
 
-    emit Redeemed(id, msg.sender, nom);
+    emit Redeemed(id, msg.sender, d.isForged, d.level, nom, nom);
     return nom;
 }
 
@@ -368,7 +412,7 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     _burn(id);
     delete nftData[id];
 
-    emit StakeBurn(id, ownerExpected);
+    emit StakeBurn(id, ownerExpected, snap.isForged, snap.level, snap.nominal);
     return snap;
 }
 
@@ -418,7 +462,7 @@ function _readAddr(address target, bytes memory data) internal view returns (add
         XNTD.mint(to, reward);
     }
 
-    emit Phoenix(id, to, matured, reward, out.nominal);
+    emit Phoenix(id, to, matured, out.isForged, out.level, reward, out.nominal);
 }
 
     function _calcStakeReward(NFTData memory d, uint256 durationSec, uint16 baseAprBpsAtStake)
@@ -502,8 +546,8 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     // ✅ mint after state is consistent
     _safeMint(to, id);
 
-    emit ForgeMint(id, to, nom);
-    emit Minted(id, to, 1, nom, true);
+    emit ForgeMint(id, to, nom, xntdTotalBurned);
+    emit Minted(id, to, 1, nom, true, nd.xenBurned, nd.xntdBurned);
     return id;
 }
 
