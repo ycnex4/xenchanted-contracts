@@ -11,10 +11,23 @@ async function main() {
   );
 
   // -----------------------------
-  // CONFIG
+  // PRODUCTION GENESIS CONFIG
   // -----------------------------
+  // Immutable for this deployment because these values are passed into
+  // the xEnchantedNFT constructor.
+  //
+  // Core L1 genesis:
+  // burn 100,000,000 XEN -> mint Core L1 with 100 XNTD nominal
+  //
+  // Ratio:
+  // 1 XNTD nominal : 1,000,000 XEN burned
   const INITIAL_NOMINAL = ethers.parseEther("100");
-  const INITIAL_XEN_BURN = ethers.parseEther("10");
+  const INITIAL_XEN_BURN = ethers.parseEther("100000000");
+
+  console.log("\n=== PRODUCTION GENESIS CONFIG ===");
+  console.log("Initial nominal:", ethers.formatEther(INITIAL_NOMINAL), "XNTD");
+  console.log("Initial XEN burn:", ethers.formatEther(INITIAL_XEN_BURN), "XEN");
+  console.log("Genesis ratio: 1 XNTD nominal : 1,000,000 XEN burned");
 
   // -----------------------------
   // 1) Deploy MockXEN
@@ -115,6 +128,10 @@ async function main() {
   console.log("xEnchantedNFTLens:             ", nftLensAddr);
   console.log("xEnchantedTokenURILens:        ", tokenUriLensAddr);
   console.log("xEnchantedStakeTokenURILens:   ", stakeTokenUriLensAddr);
+
+  console.log("\n=== VERIFIED GENESIS CONFIG ===");
+  console.log("Initial nominal:", ethers.formatEther(await core.INITIAL_NOMINAL()), "XNTD");
+  console.log("Initial XEN burn:", ethers.formatEther(await core.INITIAL_XEN_BURN()), "XEN");
 }
 
 main().catch((error) => {
