@@ -1,11 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+/**
+ * xEnchantedForge manages Forged NFT creation for the xEnchanted Crypto protocol.
+ *
+ * Built by Algorithmic Mining Lab, an open community focused on
+ * first-principles crypto and NFT-based algorithmic mining models.
+ *
+ * Author: Sergey Stepanenko.
+ */
+
+// TOKEN BURN INTERFACE
+
 interface IXNTDForgeBurner {
+    /**
+     * @dev burns XNTD from a user through the protocol-bound Forge path
+     */
     function burnForForge(address user, uint256 amount) external;
 }
 
+// CORE NFT FORGE HOOK INTERFACE
+
 interface IxEnchantedNFTForgeHook {
+    // INTERNAL TYPE TO DESCRIBE A CORE NFT SNAPSHOT
     struct NFTData {
         uint8   level;
         bool    isForged;
@@ -45,20 +62,18 @@ interface IxEnchantedNFTForgeHook {
         returns (uint256 id);
 }
 
-/**
- * xEnchantedForge
- * - Forge amount is tied to Core current epoch base nominal.
- * - Production bounds: min = base * 5, max = base * 1000.
- * - Requires burning: 1 ordinary Core L1 + XNTD.
- * - Mints forged NFT with nominal == XNTD burned.
- * - Tracks provenance: XNTD_TOTAL_BURNED == XNTD burned.
- */
 contract xEnchantedForge {
+    // IMMUTABLE CONTRACT LINKS
+
     IxEnchantedNFTForgeHook public immutable CORE;
     IXNTDForgeBurner public immutable XNTD;
 
+    // PUBLIC CONSTANTS
+
     uint16 public constant MIN_FORGE_MULTIPLIER = 5;
     uint16 public constant MAX_FORGE_MULTIPLIER = 1000;
+
+    // PUBLIC TYPE TO DESCRIBE CURRENT FORGE PARAMETERS
 
     struct ForgeParams {
         uint256 currentBaseNominal;
@@ -67,6 +82,8 @@ contract xEnchantedForge {
         uint16 minForgeMultiplier;
         uint16 maxForgeMultiplier;
     }
+
+    // EVENTS
 
     /// @notice Full forge trace for indexers/frontends.
     event Forge(
@@ -80,6 +97,8 @@ contract xEnchantedForge {
         uint256 nominal
     );
 
+    // CONSTRUCTOR
+
     constructor(address core, address xntd) {
         require(core != address(0), "C0");
         require(xntd != address(0), "T0");
@@ -87,6 +106,11 @@ contract xEnchantedForge {
         XNTD = IXNTDForgeBurner(xntd);
     }
 
+    // PUBLIC STATE-CHANGING METHODS
+
+    /**
+     * @dev consumes a current-epoch Core L1 NFT, burns XNTD and mints a Forged NFT
+     */
     function forge(uint256 baseId, uint256 xntdAmount) external returns (uint256 forgedId) {
         require(xntdAmount != 0, "Z");
 
@@ -97,14 +121,14 @@ contract xEnchantedForge {
         require(xntdAmount >= minAmt, "MIN");
         require(xntdAmount <= maxAmt, "MAX");
 
-        // burn base L1 (Core validates owner + ordinary + level==1)
+        // burn base Core L1 (Core validates owner + Core type + level == 1)
         CORE.burnL1ForForge(baseId, msg.sender);
 
         // burn XNTD from user through the bound Forge path.
         // No ERC20 approve/spending-cap transaction is required.
         XNTD.burnForForge(msg.sender, xntdAmount);
 
-        // mint forged NFT in Core
+        // mint Forged NFT in Core
         // nominal == burned XNTD
         // xntdBurned provenance == burned XNTD
         forgedId = CORE.mintForgedFromXNTD(msg.sender, xntdAmount, xntdAmount);
@@ -112,6 +136,8 @@ contract xEnchantedForge {
         emit Forge(msg.sender, baseId, forgedId, base, minAmt, maxAmt, xntdAmount, xntdAmount);
         return forgedId;
     }
+
+    // PUBLIC CONVENIENCE GETTERS
 
     /// @notice Minimum XNTD amount required to forge (current epoch base nominal * 5).
     function minForgeAmount() public view returns (uint256) {
@@ -133,6 +159,9 @@ contract xEnchantedForge {
         p.maxForgeMultiplier = MAX_FORGE_MULTIPLIER;
     }
 
+    /**
+     * @dev validates a forge request and returns the resulting Forged NFT level and nominal
+     */
     function previewForge(uint256 baseId, uint256 xntdAmount, address user)
         external
         view
