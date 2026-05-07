@@ -4,8 +4,16 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
+/**
+ * @dev Minimal read interface used by the Stake tokenURI lens.
+ *
+ * Stake remains the source of truth. This lens only reads stake position
+ * data and formats it into ERC721 metadata and SVG.
+ */
 interface IxEnchantedStakeRead {
     function ownerOf(uint256 id) external view returns (address);
+
+    // PUBLIC VIEW TYPE RETURNED BY THE STAKE CONTRACT
 
     struct StakeView {
         uint256 tokenId;
@@ -31,15 +39,36 @@ interface IxEnchantedStakeRead {
     function getStakeView(uint256 id) external view returns (StakeView memory);
 }
 
+/**
+ * xEnchantedStakeTokenURILens generates metadata and SVG for Stake NFTs.
+ *
+ * It does not store protocol state. All stake position data is read from
+ * xEnchantedStake, which remains the source of truth for active and matured
+ * stake positions.
+ *
+ * Built by Algorithmic Mining Lab, an open community focused on
+ * first-principles crypto and NFT-based algorithmic mining models.
+ *
+ * Author: Sergey Stepanenko.
+ */
 contract xEnchantedStakeTokenURILens {
     using Strings for uint256;
 
+    // IMMUTABLE PROTOCOL LINK
+
     IxEnchantedStakeRead public immutable STAKE;
 
+    // CONSTRUCTOR
+
+    /**
+     * @dev stores the Stake contract address used as the metadata source
+     */
     constructor(address stake) {
         require(stake != address(0), "S0");
         STAKE = IxEnchantedStakeRead(stake);
     }
+
+    // INTERNAL TYPE USED TO RENDER STAKE NFT METADATA
 
     struct P {
         bool active;
@@ -60,6 +89,11 @@ contract xEnchantedStakeTokenURILens {
         uint256 maturityRedeemNominal;
     }
 
+    // TOKEN URI
+
+    /**
+     * @dev returns base64 encoded ERC721 metadata for a Stake NFT
+     */
     function tokenURI(uint256 id) external view returns (string memory) {
         // Ensure token exists: ownerOf() reverts if not minted.
         // Use staticcall to avoid bubbling different revert strings from STAKE.
@@ -82,6 +116,9 @@ contract xEnchantedStakeTokenURILens {
             );
     }
 
+    /**
+     * @dev loads the full stake position snapshot from the Stake contract
+     */
     function _load(uint256 id) internal view returns (P memory p) {
         IxEnchantedStakeRead.StakeView memory v = STAKE.getStakeView(id);
 
@@ -103,6 +140,11 @@ contract xEnchantedStakeTokenURILens {
         p.maturityRedeemNominal = v.maturityRedeemNominal;
     }
 
+    // PUBLIC CONVENIENCE GETTERS
+
+    /**
+     * @dev returns the same exit preview values used by the Stake NFT metadata
+     */
     function previewExit(
         uint256 id
     )
@@ -145,16 +187,25 @@ contract xEnchantedStakeTokenURILens {
         );
     }
 
-    // ---- helpers ----
+    // INTERNAL FORMATTING HELPERS
 
+    /**
+     * @dev converts an unsigned integer to a decimal string
+     */
     function _u(uint256 x) internal pure returns (string memory) {
         return Strings.toString(x);
     }
 
+    /**
+     * @dev returns the Stake contract address as a fixed-length hex string
+     */
     function _stakeAddress() internal view returns (string memory) {
         return Strings.toHexString(uint160(address(STAKE)), 20);
     }
 
+    /**
+     * @dev formats whole numbers with comma separators for SVG readability
+     */
     function _commas(uint256 value) internal pure returns (string memory) {
         string memory s = value.toString();
         bytes memory b = bytes(s);
@@ -180,6 +231,9 @@ contract xEnchantedStakeTokenURILens {
         return string(out);
     }
 
+    /**
+     * @dev formats an 18-decimal token amount with up to two decimals
+     */
     function _fmt18(
         uint256 amount,
         string memory symbol
@@ -229,6 +283,9 @@ contract xEnchantedStakeTokenURILens {
             );
     }
 
+    /**
+     * @dev formats basis points as a human-readable APR percentage
+     */
     function _fmtApr(uint256 bps) internal pure returns (string memory) {
         uint256 whole = bps / 100;
         uint256 frac = bps % 100;
@@ -267,8 +324,11 @@ contract xEnchantedStakeTokenURILens {
             );
     }
 
-    // ---- SVG ----
+    // SVG RENDERING
 
+    /**
+     * @dev renders the on-chain SVG image for Stake Core and Stake Forged NFTs
+     */
     function _svgBytes(
         uint256 id,
         P memory p
@@ -373,8 +433,11 @@ contract xEnchantedStakeTokenURILens {
         return abi.encodePacked(a, b, c);
     }
 
-    // ---- JSON ----
+    // JSON METADATA
 
+    /**
+     * @dev builds ERC721 metadata JSON and embeds the SVG as base64 image data
+     */
     function _jsonBytes(
         uint256 id,
         P memory p,
@@ -402,7 +465,7 @@ contract xEnchantedStakeTokenURILens {
             '"name":"',
             tokenName,
             '"',
-            ',"description":"Tradable xEnchanted stake position NFT. The current owner controls redeem and receives the recreated artifact plus any available reward. On-chain data is the source of truth."',
+            ',"description":"Tradable xEnchanted stake position NFT. The current owner controls redeem and receives the recreated NFT plus any available reward. On-chain data is the source of truth."',
             ',"image":"',
             img,
             '"',
