@@ -4,23 +4,40 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
+/**
+ * @dev interface implemented by contracts that can receive XNTD burn callbacks
+ */
 interface IXNTDBurnRedeemable is IERC165 {
+    /**
+     * @dev called by XNTD after a supported integrator burn is completed
+     */
     function onXNTDBurned(address user, uint256 amount) external;
 }
 
 /**
- * XNTDToken
- * - No owner, no admin.
- * - Mint is allowed ONLY for Core (xEnchantedNFT).
- * - No public self-burn: XNTD burn must have protocol meaning.
- * - XEN-style integrator burn: allowance + ERC165 callback.
- * - Forge burn path: one-time-bound Forge can burn user XNTD during forge without allowance.
+ * XNTDToken is the ERC20 token of the xEnchanted Crypto protocol.
+ *
+ * XNTD is minted only through protocol NFT mechanics controlled by Core.
+ * The token has no owner mint path, no arbitrary admin emission and no
+ * public self-burn path. Burns are tied to protocol mechanics or supported
+ * integrator contracts.
+ *
+ * Built by Algorithmic Mining Lab, an open community focused on
+ * first-principles crypto and NFT-based algorithmic mining models.
+ *
+ * Author: Sergey Stepanenko.
  */
 contract XNTDToken is ERC20 {
+    // IMMUTABLE PROTOCOL LINK
+
     address public immutable CORE;
+
+    // ONE-TIME FORGE BINDING
 
     address public FORGE;
     bool public forgeBound;
+
+    // PUBLIC BURN ACCOUNTING, READABLE VIA NAMESAKE GETTERS
 
     uint256 public totalBurned;
     uint256 public forgeBurned;
@@ -28,10 +45,14 @@ contract XNTDToken is ERC20 {
     mapping(address => uint256) public userBurns;
     mapping(address => uint256) public integratorBurns;
 
+    // INTERNAL TYPE TO DESCRIBE XNTD BURN PROVENANCE
+
     enum BurnKind {
         Integrator,
         Forge
     }
+
+    // EVENTS
 
     event ForgeBound(address indexed forge);
     event XNTDMinted(address indexed to, uint256 amount);
@@ -41,6 +62,8 @@ contract XNTDToken is ERC20 {
         uint256 amount,
         BurnKind kind
     );
+
+    // MODIFIERS
 
     modifier onlyCore() {
         require(msg.sender == CORE, "CORE");
@@ -52,17 +75,28 @@ contract XNTDToken is ERC20 {
         _;
     }
 
+    // CONSTRUCTOR
+
     constructor(address core) ERC20("xEnchanted Token", "XNTD") {
         require(core != address(0), "C0");
         CORE = core;
     }
 
+    // CORE-ONLY EMISSION
+
+    /**
+     * @dev mints XNTD only when called by Core as part of protocol NFT mechanics
+     */
     function mint(address to, uint256 amount) external onlyCore {
         _mint(to, amount);
         emit XNTDMinted(to, amount);
     }
 
-    /// @notice One-time protocol binding. Only Core can bind Forge during Core.init(...).
+    // ADMINLESS ONE-TIME WIRING
+
+    /**
+     * @dev binds the Forge contract once so Forge can use its dedicated burn path
+     */
     function bindForge(address forge_) external onlyCore {
         require(!forgeBound, "BOUND");
         require(forge_ != address(0), "F0");
@@ -74,10 +108,14 @@ contract XNTDToken is ERC20 {
         emit ForgeBound(forge_);
     }
 
+    // PUBLIC INTEGRATOR BURN
+
     /**
-     * @notice XEN-style proof-of-burn integration path.
-     * @dev The caller must be a contract supporting IXNTDBurnRedeemable and must have allowance.
-     *      This intentionally does NOT provide public self-burn.
+     * @dev burns XNTD from a user through a supported integrator contract
+     *
+     * The caller must support the XNTD burn-redeemable interface.
+     * The user must approve the caller before this function can spend and burn.
+     * After burning, the caller receives an onXNTDBurned callback.
      */
     function burn(address user, uint256 amount) external {
         require(user != address(0), "U0");
@@ -93,7 +131,15 @@ contract XNTDToken is ERC20 {
         IXNTDBurnRedeemable(msg.sender).onXNTDBurned(user, amount);
     }
 
-    /// @notice Forge-only protocol burn path. No allowance, no user-supplied burner.
+    // FORGE-ONLY PROTOCOL BURN
+
+    /**
+     * @dev burns XNTD for Forge without using the public integrator burn path
+     *
+     * This function can only be called by the bound Forge contract.
+     * It exists to keep Forge as a direct protocol mechanic rather than
+     * a generic third-party burn integration.
+     */
     function burnForForge(address user, uint256 amount) external onlyForge {
         require(user != address(0), "U0");
         require(amount != 0, "BURN_ZERO");
@@ -104,6 +150,11 @@ contract XNTDToken is ERC20 {
         _recordBurn(user, msg.sender, amount, BurnKind.Forge);
     }
 
+    // INTERNAL ACCOUNTING
+
+    /**
+     * @dev records protocol burn provenance by user, caller and burn kind
+     */
     function _recordBurn(address user, address burner, uint256 amount, BurnKind kind) internal {
         userBurns[user] += amount;
         totalBurned += amount;
@@ -111,6 +162,11 @@ contract XNTDToken is ERC20 {
         emit XNTDBurned(user, burner, amount, kind);
     }
 
+    // INTERNAL INTEGRATOR CHECKS
+
+    /**
+     * @dev returns true when target is a contract supporting the XNTD burn callback interface
+     */
     function _supportsBurnRedeemable(address target) internal view returns (bool) {
         if (target.code.length == 0) return false;
 
