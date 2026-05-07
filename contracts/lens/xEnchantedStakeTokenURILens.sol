@@ -73,12 +73,13 @@ contract xEnchantedStakeTokenURILens {
         bytes memory svg = _svgBytes(id, p);
         bytes memory json = _jsonBytes(id, p, svg);
 
-        return string(
-            abi.encodePacked(
-                "data:application/json;base64,",
-                Base64.encode(json)
-            )
-        );
+        return
+            string(
+                abi.encodePacked(
+                    "data:application/json;base64,",
+                    Base64.encode(json)
+                )
+            );
     }
 
     function _load(uint256 id) internal view returns (P memory p) {
@@ -102,7 +103,9 @@ contract xEnchantedStakeTokenURILens {
         p.maturityRedeemNominal = v.maturityRedeemNominal;
     }
 
-    function previewExit(uint256 id)
+    function previewExit(
+        uint256 id
+    )
         external
         view
         returns (
@@ -152,50 +155,218 @@ contract xEnchantedStakeTokenURILens {
         return Strings.toHexString(uint160(address(STAKE)), 20);
     }
 
+    function _commas(uint256 value) internal pure returns (string memory) {
+        string memory s = value.toString();
+        bytes memory b = bytes(s);
+
+        if (b.length <= 3) return s;
+
+        uint256 commas = (b.length - 1) / 3;
+        bytes memory out = new bytes(b.length + commas);
+
+        uint256 j = out.length;
+        uint256 group = 0;
+
+        for (uint256 i = b.length; i > 0; --i) {
+            if (group == 3) {
+                out[--j] = ",";
+                group = 0;
+            }
+
+            out[--j] = b[i - 1];
+            ++group;
+        }
+
+        return string(out);
+    }
+
+    function _fmt18(
+        uint256 amount,
+        string memory symbol
+    ) internal pure returns (string memory) {
+        uint256 whole = amount / 1e18;
+        uint256 frac2 = (amount % 1e18) / 1e16; // up to 2 decimals
+
+        if (frac2 == 0) {
+            return string(abi.encodePacked(_commas(whole), " ", symbol));
+        }
+
+        if (frac2 % 10 == 0) {
+            return
+                string(
+                    abi.encodePacked(
+                        _commas(whole),
+                        ".",
+                        (frac2 / 10).toString(),
+                        " ",
+                        symbol
+                    )
+                );
+        }
+
+        if (frac2 < 10) {
+            return
+                string(
+                    abi.encodePacked(
+                        _commas(whole),
+                        ".0",
+                        frac2.toString(),
+                        " ",
+                        symbol
+                    )
+                );
+        }
+
+        return
+            string(
+                abi.encodePacked(
+                    _commas(whole),
+                    ".",
+                    frac2.toString(),
+                    " ",
+                    symbol
+                )
+            );
+    }
+
+    function _fmtApr(uint256 bps) internal pure returns (string memory) {
+        uint256 whole = bps / 100;
+        uint256 frac = bps % 100;
+
+        if (frac == 0) {
+            return string(abi.encodePacked(whole.toString(), "%"));
+        }
+
+        if (frac % 10 == 0) {
+            return
+                string(
+                    abi.encodePacked(
+                        whole.toString(),
+                        ".",
+                        (frac / 10).toString(),
+                        "%"
+                    )
+                );
+        }
+
+        if (frac < 10) {
+            return
+                string(
+                    abi.encodePacked(
+                        whole.toString(),
+                        ".0",
+                        frac.toString(),
+                        "%"
+                    )
+                );
+        }
+
+        return
+            string(
+                abi.encodePacked(whole.toString(), ".", frac.toString(), "%")
+            );
+    }
+
     // ---- SVG ----
 
-    function _svgBytes(uint256 id, P memory p) internal view returns (bytes memory) {
-        string memory t = p.isForged ? "STAKED FORGED" : "STAKED ORIGINAL";
-        string memory status = p.active ? (p.matured ? "MATURED" : "ACTIVE") : "INACTIVE";
+    function _svgBytes(
+        uint256 id,
+        P memory p
+    ) internal view returns (bytes memory) {
+        string memory title = "xEnchanted Stake";
+        string memory t = p.isForged ? "STAKE FORGED" : "STAKE CORE";
+        string memory status = p.active
+            ? (p.matured ? "MATURED" : "ACTIVE")
+            : "INACTIVE";
 
-        string memory statusColor =
-            !p.active ? "#B8B8C8" :
-            (p.matured ? "#77E38D" : "#6AA8FF");
+        string memory bg = p.isForged ? "#1b1220" : "#130f24";
+        string memory border = p.isForged ? "#f59e0b" : "#8b5cf6";
+        string memory accent = "#a78bfa";
 
-        string memory typeColor = p.isForged ? "#F5C76A" : "#A0A0B8";
+        string memory statusColor = !p.active
+            ? "#B8B8C8"
+            : (p.matured ? "#77E38D" : accent);
 
         bytes memory a = abi.encodePacked(
             "<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMinYMin meet' viewBox='0 0 350 566'>",
-                "<rect width='350' height='566' fill='#0B0B0F'/>",
-                "<rect x='12' y='12' width='326' height='542' rx='10' fill='#12121A' stroke='#2A2A3A' stroke-width='2'/>",
-                "<text x='175' y='44' dominant-baseline='hanging' text-anchor='middle' fill='#EAEAF2' font-size='20' font-family='monospace'>xEnchanted Stake</text>",
-                "<text x='24' y='74' dominant-baseline='hanging' fill='#B8B8C8' font-size='14' font-family='monospace'>ID #", id.toString(), "</text>",
-                "<line x1='24' y1='120' x2='326' y2='120' stroke='#2A2A3A' stroke-width='1'/>",
-                "<text x='24' y='145' fill='", statusColor, "' font-size='14' font-family='monospace'>STATUS: ", status, "</text>",
-                "<text x='24' y='182' fill='#EAEAF2' font-size='14' font-family='monospace'>ENDS_AT:</text>",
-                "<text x='24' y='205' fill='#EAEAF2' font-size='14' font-family='monospace'>", _u(uint256(p.endTs)), "</text>"
+            "<rect width='350' height='566' fill='",
+            bg,
+            "'/>",
+            "<rect x='12' y='12' width='326' height='542' rx='10' fill='",
+            bg,
+            "' stroke='",
+            border,
+            "' stroke-width='2'/>",
+            "<text x='175' y='42' dominant-baseline='hanging' text-anchor='middle' fill='",
+            accent,
+            "' font-size='20' font-family='monospace'>",
+            title,
+            "</text>",
+            "<text x='24' y='82' dominant-baseline='hanging' fill='#EAEAF2' font-size='14' font-family='monospace'>ID #",
+            id.toString(),
+            "</text>",
+            "<line x1='24' y1='122' x2='326' y2='122' stroke='",
+            border,
+            "' stroke-width='1'/>",
+            "<text x='24' y='148' fill='",
+            statusColor,
+            "' font-size='14' font-family='monospace'>STATUS: ",
+            status,
+            "</text>",
+            "<text x='24' y='172' fill='",
+            accent,
+            "' font-size='14' font-family='monospace'>TYPE: ",
+            t,
+            "</text>",
+            "<text x='24' y='196' fill='#EAEAF2' font-size='14' font-family='monospace'>LEVEL: ",
+            _u(uint256(p.level)),
+            "</text>",
+            "<text x='24' y='220' fill='#EAEAF2' font-size='14' font-family='monospace'>NOMINAL:</text>",
+            "<text x='24' y='244' fill='#EAEAF2' font-size='14' font-family='monospace'>",
+            _fmt18(p.nominal, "XNTD"),
+            "</text>"
         );
 
         bytes memory b = abi.encodePacked(
-                "<text x='24' y='244' fill='#EAEAF2' font-size='14' font-family='monospace'>DURATION_DAYS: ", _u(uint256(p.durationDays)), "</text>",
-                "<text x='24' y='278' fill='#EAEAF2' font-size='14' font-family='monospace'>TOTAL_APR_BPS: ", _u(uint256(p.totalAprBps)), "</text>",
-                "<text x='24' y='312' fill='#9A9AB0' font-size='12' font-family='monospace'>BASE/LEVEL/FORGED: ",
-                    _u(uint256(p.baseAprBps)), "/", _u(uint256(p.levelBonusBps)), "/", _u(uint256(p.forgedBonusBps)),
-                "</text>",
-                "<text x='24' y='345' fill='#EAEAF2' font-size='14' font-family='monospace'>LEVEL NFT: ", _u(uint256(p.level)), "</text>",
-                "<text x='24' y='378' fill='", typeColor, "' font-size='14' font-family='monospace'>TYPE: ", t, "</text>",
-                "<text x='24' y='412' fill='#EAEAF2' font-size='14' font-family='monospace'>NOMINAL:</text>",
-                "<text x='24' y='434' fill='#EAEAF2' font-size='14' font-family='monospace'>", p.nominal.toString(), "</text>"
+            "<text x='24' y='276' fill='#EAEAF2' font-size='14' font-family='monospace'>DURATION_DAYS: ",
+            _u(uint256(p.durationDays)),
+            "</text>",
+            "<text x='24' y='312' fill='#EAEAF2' font-size='14' font-family='monospace'>TOTAL_APR: ",
+            _fmtApr(uint256(p.totalAprBps)),
+            "</text>",
+            "<text x='24' y='336' fill='#B8B8C8' font-size='12' font-family='monospace'>BASE/LEVEL/FORGED: ",
+            _fmtApr(uint256(p.baseAprBps)),
+            " / ",
+            _fmtApr(uint256(p.levelBonusBps)),
+            " / ",
+            _fmtApr(uint256(p.forgedBonusBps)),
+            "</text>",
+            "<text x='24' y='372' fill='#EAEAF2' font-size='14' font-family='monospace'>ENDS_AT:</text>",
+            "<text x='24' y='396' fill='#EAEAF2' font-size='14' font-family='monospace'>",
+            _u(uint256(p.endTs)),
+            "</text>"
         );
 
         bytes memory c = abi.encodePacked(
-                "<text x='24' y='468' fill='#9A9AB0' font-size='12' font-family='monospace'>EXPECTED_REWARD:</text>",
-                "<text x='24' y='488' fill='#9A9AB0' font-size='12' font-family='monospace'>", p.expectedReward.toString(), "</text>",
-                "<text x='24' y='511' fill='#9A9AB0' font-size='12' font-family='monospace'>AVAILABLE_REWARD: ", p.availableReward.toString(), "</text>",
-                "<line x1='24' y1='536' x2='326' y2='536' stroke='#2A2A3A' stroke-width='1'/>",
-                "<text x='30' y='540' dominant-baseline='hanging' fill='#6F6F86' font-size='9' font-family='monospace'>Contract: ",
-                    _stakeAddress(),
-                "</text>",
+            "<text x='24' y='432' fill='#B8B8C8' font-size='12' font-family='monospace'>EXPECTED_REWARD:</text>",
+            "<text x='24' y='452' fill='#B8B8C8' font-size='12' font-family='monospace'>",
+            _fmt18(p.expectedReward, "XNTD"),
+            "</text>",
+            "<text x='24' y='472' fill='#B8B8C8' font-size='12' font-family='monospace'>AVAILABLE_REWARD: ",
+            _fmt18(p.availableReward, "XNTD"),
+            "</text>",
+            "<text x='24' y='492' fill='#B8B8C8' font-size='11' font-family='monospace'>RETURN_EARLY: ",
+            _fmt18(p.earlyRedeemNominal, "XNTD"),
+            "</text>",
+            "<text x='24' y='508' fill='#B8B8C8' font-size='11' font-family='monospace'>RETURN_MATURED: ",
+            _fmt18(p.maturityRedeemNominal, "XNTD"),
+            "</text>",
+            "<line x1='24' y1='520' x2='326' y2='520' stroke='",
+            border,
+            "' stroke-width='1'/>",
+            "<text x='30' y='524' dominant-baseline='hanging' fill='#B8B8C8' font-size='9' font-family='monospace'>Contract: ",
+            _stakeAddress(),
+            "</text>",
             "</svg>"
         );
 
@@ -204,12 +375,22 @@ contract xEnchantedStakeTokenURILens {
 
     // ---- JSON ----
 
-    function _jsonBytes(uint256 id, P memory p, bytes memory svg) internal pure returns (bytes memory) {
-        string memory status = p.active ? (p.matured ? "MATURED" : "ACTIVE") : "INACTIVE";
-        string memory t = p.isForged ? "Staked Forged" : "Staked Original";
+    function _jsonBytes(
+        uint256 id,
+        P memory p,
+        bytes memory svg
+    ) internal pure returns (bytes memory) {
+        string memory status = p.active
+            ? (p.matured ? "Matured" : "Active")
+            : "Inactive";
+        string memory t = p.isForged ? "Stake Forged" : "Stake Core";
         string memory tokenName = p.isForged
-            ? string(abi.encodePacked("xEnchanted Staked Forged #", id.toString()))
-            : string(abi.encodePacked("xEnchanted Staked Original #", id.toString()));
+            ? string(
+                abi.encodePacked("xEnchanted Stake Forged #", id.toString())
+            )
+            : string(
+                abi.encodePacked("xEnchanted Stake Core #", id.toString())
+            );
 
         bytes memory img = abi.encodePacked(
             "data:image/svg+xml;base64,",
@@ -218,31 +399,63 @@ contract xEnchantedStakeTokenURILens {
 
         bytes memory a = abi.encodePacked(
             "{",
-                "\"name\":\"", tokenName, "\",",
-                "\"description\":\"Tradable xEnchanted stake position NFT. The current owner controls redeem and receives the recreated artifact plus any available reward. On-chain data is the source of truth.\",",
-                "\"image\":\"", img, "\",",
-                "\"attributes\":["
+            '"name":"',
+            tokenName,
+            '"',
+            ',"description":"Tradable xEnchanted stake position NFT. The current owner controls redeem and receives the recreated artifact plus any available reward. On-chain data is the source of truth."',
+            ',"image":"',
+            img,
+            '"',
+            ',"attributes":['
         );
 
         bytes memory b = abi.encodePacked(
-                "{\"trait_type\":\"Status\",\"value\":\"", status, "\"},",
-                "{\"trait_type\":\"EndsAt\",\"value\":\"", _u(uint256(p.endTs)), "\"},",
-                "{\"trait_type\":\"DurationDays\",\"value\":\"", _u(uint256(p.durationDays)), "\"},",
-                "{\"trait_type\":\"BaseAPR_BPS\",\"value\":\"", _u(uint256(p.baseAprBps)), "\"},",
-                "{\"trait_type\":\"LevelBonus_BPS\",\"value\":\"", _u(uint256(p.levelBonusBps)), "\"},",
-                "{\"trait_type\":\"ForgedBonus_BPS\",\"value\":\"", _u(uint256(p.forgedBonusBps)), "\"},",
-                "{\"trait_type\":\"TotalAPR_BPS\",\"value\":\"", _u(uint256(p.totalAprBps)), "\"},",
-                "{\"trait_type\":\"Level\",\"value\":\"", _u(uint256(p.level)), "\"},",
-                "{\"trait_type\":\"Type\",\"value\":\"", t, "\"},"
+            '{"trait_type":"Status","value":"',
+            status,
+            '"},',
+            '{"trait_type":"Type","value":"',
+            t,
+            '"},',
+            '{"trait_type":"Level","value":"',
+            _u(uint256(p.level)),
+            '"},',
+            '{"trait_type":"DurationDays","value":"',
+            _u(uint256(p.durationDays)),
+            '"},',
+            '{"trait_type":"EndsAt","value":"',
+            _u(uint256(p.endTs)),
+            '"},',
+            '{"trait_type":"BaseAPR","value":"',
+            _fmtApr(uint256(p.baseAprBps)),
+            '"},',
+            '{"trait_type":"LevelBonusAPR","value":"',
+            _fmtApr(uint256(p.levelBonusBps)),
+            '"},',
+            '{"trait_type":"ForgedBonusAPR","value":"',
+            _fmtApr(uint256(p.forgedBonusBps)),
+            '"},',
+            '{"trait_type":"TotalAPR","value":"',
+            _fmtApr(uint256(p.totalAprBps)),
+            '"},'
         );
 
         bytes memory c = abi.encodePacked(
-                "{\"trait_type\":\"Nominal\",\"value\":\"", p.nominal.toString(), "\"},",
-                "{\"trait_type\":\"EarlyRedeemNominal\",\"value\":\"", p.earlyRedeemNominal.toString(), "\"},",
-                "{\"trait_type\":\"MaturityRedeemNominal\",\"value\":\"", p.maturityRedeemNominal.toString(), "\"},",
-                "{\"trait_type\":\"ExpectedReward\",\"value\":\"", p.expectedReward.toString(), "\"},",
-                "{\"trait_type\":\"AvailableReward\",\"value\":\"", p.availableReward.toString(), "\"}",
-                "]",
+            '{"trait_type":"Nominal","value":"',
+            _fmt18(p.nominal, "XNTD"),
+            '"},',
+            '{"trait_type":"ExpectedReward","value":"',
+            _fmt18(p.expectedReward, "XNTD"),
+            '"},',
+            '{"trait_type":"AvailableReward","value":"',
+            _fmt18(p.availableReward, "XNTD"),
+            '"},',
+            '{"trait_type":"EarlyRedeemNominal","value":"',
+            _fmt18(p.earlyRedeemNominal, "XNTD"),
+            '"},',
+            '{"trait_type":"MaturityRedeemNominal","value":"',
+            _fmt18(p.maturityRedeemNominal, "XNTD"),
+            '"}',
+            "]",
             "}"
         );
 
