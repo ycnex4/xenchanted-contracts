@@ -5,7 +5,11 @@ import "../core/xEnchantedNFT.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
+/**
+ * @dev minimal Core read interface used by the token URI lens
+ */
 interface IxEnchantedNFTRead {
+    // INTERNAL TYPE TO READ CORE NFT DATA FROM THE SOURCE CONTRACT
     struct NFTData {
         uint8 level;
         bool isForged;
@@ -27,15 +31,37 @@ interface IxEnchantedNFTRead {
     function symbol() external view returns (string memory);
 }
 
+/**
+ * xEnchantedTokenURILens renders Core and Forged NFT metadata for the
+ * xEnchanted Crypto protocol.
+ *
+ * Core remains the source of truth for NFT ownership and protocol state.
+ * This lens stores no NFT lifecycle data and only turns Core data into
+ * tokenURI JSON and on-chain SVG for wallets, explorers and frontends.
+ *
+ * Built by Algorithmic Mining Lab, an open community focused on
+ * first-principles crypto and NFT-based algorithmic mining models.
+ *
+ * Author: Sergey Stepanenko.
+ */
 contract xEnchantedTokenURILens {
     using Strings for uint256;
 
+    // IMMUTABLE SOURCE CONTRACT
+
     IxEnchantedNFTRead public immutable CORE;
 
+    // CONSTRUCTOR
+
+    /**
+     * @dev binds the lens to the Core contract that provides NFT state
+     */
     constructor(address core) {
         require(core != address(0), "C0");
         CORE = IxEnchantedNFTRead(core);
     }
+
+    // INTERNAL TYPE TO RENDER TOKEN URI DATA
 
     struct P {
         uint8 level;
@@ -49,6 +75,11 @@ contract xEnchantedTokenURILens {
         uint256 parentId2;
     }
 
+    // PUBLIC TOKEN URI METHOD
+
+    /**
+     * @dev returns base64 encoded ERC721 metadata with embedded SVG image
+     */
     function tokenURI(uint256 id) external view returns (string memory) {
         // Existence check: ownerOf() reverts if the NFT does not exist.
         // Use staticcall to avoid bubbling different revert strings from CORE.
@@ -71,6 +102,9 @@ contract xEnchantedTokenURILens {
             );
     }
 
+    /**
+     * @dev reads Core NFT data and copies it into a compact render struct
+     */
     function _load(uint256 id) internal view returns (P memory p) {
         IxEnchantedNFTRead.NFTData memory d = CORE.nftData(id);
 
@@ -85,16 +119,25 @@ contract xEnchantedTokenURILens {
         p.parentId2 = d.parentId2;
     }
 
-    // ---- helpers ----
+    // INTERNAL RENDER HELPERS
 
+    /**
+     * @dev converts a uint256 value to string
+     */
     function _u(uint256 x) internal pure returns (string memory) {
         return Strings.toString(x);
     }
 
+    /**
+     * @dev returns the bound Core address as a hex string
+     */
     function _coreAddress() internal view returns (string memory) {
         return Strings.toHexString(uint160(address(CORE)), 20);
     }
 
+    /**
+     * @dev formats whole-number values with comma separators for readability
+     */
     function _commas(uint256 value) internal pure returns (string memory) {
         string memory s = value.toString();
         bytes memory b = bytes(s);
@@ -120,6 +163,9 @@ contract xEnchantedTokenURILens {
         return string(out);
     }
 
+    /**
+     * @dev formats 18-decimal token amounts into compact human-readable text
+     */
     function _fmt18(
         uint256 amount,
         string memory symbol
@@ -169,8 +215,11 @@ contract xEnchantedTokenURILens {
             );
     }
 
-    // ---- SVG ----
+    // SVG RENDERING
 
+    /**
+     * @dev renders a lightweight on-chain SVG for Core and Forged NFTs
+     */
     function _svgBytes(
         uint256 id,
         P memory p
@@ -265,8 +314,11 @@ contract xEnchantedTokenURILens {
         return abi.encodePacked(a, b, c);
     }
 
-    // ---- JSON ----
+    // JSON METADATA RENDERING
 
+    /**
+     * @dev renders ERC721 metadata JSON and embeds the SVG image as base64
+     */
     function _jsonBytes(
         uint256 id,
         P memory p,
