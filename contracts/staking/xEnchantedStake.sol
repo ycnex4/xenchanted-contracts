@@ -54,17 +54,26 @@ interface IStakeTokenURILens {
 }
 
 /**
- * xEnchantedStake
- * - ERC-721 position NFT (tradeable)
- * - tokenId == original NFT id
- * - L1 Core/Forged cannot be staked
- * - stake(): burns original in Core, mints position to user, stores snapshot + times + base APR
- * - redeem(): burns position, calls Core to phoenix-mint original back to current owner and mint rewards if matured
+ * xEnchantedStake manages tradable Stake NFTs for the xEnchanted Crypto protocol.
+ *
+ * A Stake NFT represents a locked Core or Forged NFT position. The staked NFT
+ * is burned in Core at stake start, while this contract stores its snapshot and
+ * mints a transferable Stake NFT with the same tokenId. On redeem, Core restores
+ * the Core or Forged NFT through the Phoenix flow and mints rewards only when
+ * the position is mature.
+ *
+ * Built by Algorithmic Mining Lab, an open community focused on
+ * first-principles crypto and NFT-based algorithmic mining models.
+ *
+ * Author: Sergey Stepanenko.
  */
 contract xEnchantedStake is ERC721, ReentrancyGuard {
+    // IMMUTABLE PROTOCOL LINK
     IxEnchantedNFT public immutable CORE;
     address public DEPLOYER;
     address public TOKEN_URI_LENS;
+
+    // INTERNAL TYPES
 
     struct Pos {
         IxEnchantedNFT.NFTData snap;
@@ -95,7 +104,11 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         uint256 maturityRedeemNominal;
     }
 
+    // PUBLIC STATE, READABLE VIA NAMESAKE GETTERS
+
     mapping(uint256 => Pos) public pos;
+
+    // PUBLIC CONSTANTS
 
     uint16 public constant MIN_DAYS = 30;
     uint16 public constant MAX_DAYS = 730;
@@ -104,6 +117,8 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
     uint16 public constant LEVEL_BONUS_STEP_BPS = 100;
     uint16 public constant FORGED_BONUS_BPS = 500;
     uint256 public constant EARLY_PENALTY_BPS = 100;
+
+    // EVENTS
 
     event Staked(
         address indexed user,
@@ -127,10 +142,14 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         uint256 remintedNominal
     );
 
+    // MODIFIERS
+
     modifier onlyDeployer() {
         require(msg.sender == DEPLOYER, "DEP");
         _;
     }
+
+    // CONSTRUCTOR
 
     constructor(address core) ERC721("xEnchanted Stake", "xSTAKE") {
         require(core != address(0), "C0");
@@ -138,6 +157,11 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         DEPLOYER = msg.sender;
     }
 
+    // ADMINLESS ONE-TIME WIRING
+
+    /**
+     * @dev sets the external tokenURI lens once, then burns deployer wiring rights
+     */
     function setTokenURILens(address lens) external onlyDeployer {
         require(TOKEN_URI_LENS == address(0), "URI_SET");
         require(lens != address(0), "URI0");
@@ -147,12 +171,22 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         DEPLOYER = address(0);
     }
 
+    // TOKEN URI
+
+    /**
+     * @dev delegates Stake NFT metadata rendering to the configured URI lens
+     */
     function tokenURI(uint256 id) public view override returns (string memory) {
         ownerOf(id);
         require(TOKEN_URI_LENS != address(0), "URI");
         return IStakeTokenURILens(TOKEN_URI_LENS).tokenURI(id);
     }
 
+    // USER ACTIONS
+
+    /**
+     * @dev burns a Core or Forged NFT in Core and mints a tradable Stake NFT position
+     */
     function stake(uint256 id, uint16 durationDays) external nonReentrant {
         require(durationDays >= MIN_DAYS, "DUR_MIN");
         require(durationDays <= MAX_DAYS, "DUR_MAX");
@@ -199,6 +233,9 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         );
     }
 
+    /**
+     * @dev burns a Stake NFT and asks Core to restore the staked NFT through the Phoenix flow
+     */
     function redeem(uint256 id) external nonReentrant {
         require(ownerOf(id) == msg.sender, "OWN");
 
@@ -227,6 +264,11 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         emit StakeRedeemed(msg.sender, id, matured, reward, remintedNominal);
     }
 
+    // PUBLIC CONVENIENCE GETTERS
+
+    /**
+     * @dev returns redeem state and reward amounts for an active stake position
+     */
     function previewRedeem(uint256 id)
         external
         view
@@ -278,10 +320,16 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         );
     }
 
+    /**
+     * @dev returns the stored stake position snapshot and timing data
+     */
     function getPos(uint256 id) external view returns (Pos memory) {
         return pos[id];
     }
 
+    /**
+     * @dev returns Stake NFT ids owned by an address by scanning the Core tokenId range
+     */
     function walletOfOwner(address owner) external view returns (uint256[] memory) {
         require(owner != address(0), "OW0");
 
@@ -307,6 +355,9 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         return ids;
     }
 
+    /**
+     * @dev previews stake eligibility, APR breakdown and expected reward for a Core or Forged NFT
+     */
     function previewStake(uint256 id, uint16 durationDays)
         external
         view
@@ -389,12 +440,18 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         );
     }
 
+    /**
+     * @dev returns an aggregated view for one Stake NFT
+     */
     function getStakeView(uint256 id) external view returns (StakeView memory) {
         address owner = ownerOf(id);
         Pos memory p = pos[id];
         return _buildStakeView(id, owner, p);
     }
 
+    /**
+     * @dev returns aggregated views for multiple Stake NFTs
+     */
     function getStakeViews(uint256[] calldata ids) external view returns (StakeView[] memory views_) {
         views_ = new StakeView[](ids.length);
 
@@ -406,6 +463,11 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         }
     }
 
+    // INTERNAL METHODS
+
+    /**
+     * @dev builds the external StakeView object from stored position data
+     */
     function _buildStakeView(uint256 id, address owner, Pos memory p) internal view returns (StakeView memory) {
         bool active = p.active && p.endTs > p.startTs;
         bool matured = active && block.timestamp >= uint256(p.endTs);
@@ -451,6 +513,9 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         });
     }
 
+    /**
+     * @dev calculates APR components from a stored Core/Forged NFT snapshot
+     */
     function _aprBreakdown(IxEnchantedNFT.NFTData memory snap, uint16 baseAprBps)
         internal
         pure
@@ -459,6 +524,9 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         return _aprBreakdownRaw(snap.level, snap.isForged, baseAprBps);
     }
 
+    /**
+     * @dev calculates base APR + level bonus + optional Forged NFT bonus
+     */
     function _aprBreakdownRaw(uint8 level, bool isForged, uint16 baseAprBps)
         internal
         pure
@@ -471,10 +539,16 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         totalAprBps = baseAprBps + levelBonusBps + forgedBonusBps;
     }
 
+    /**
+     * @dev calculates deterministic stake reward for the full selected duration
+     */
     function _calcReward(uint256 nominal, uint16 totalAprBps, uint256 durationSec) internal pure returns (uint256) {
         return Math.mulDiv(nominal, uint256(totalAprBps) * durationSec, 365 days * BPS_DENOM);
     }
 
+    /**
+     * @dev applies the early redeem nominal penalty while preserving non-zero nominal values
+     */
     function _earlyRedeemNominal(uint256 nominal) internal pure returns (uint256 out) {
         out = Math.mulDiv(nominal, BPS_DENOM - EARLY_PENALTY_BPS, BPS_DENOM, Math.Rounding.Ceil);
         if (out == 0 && nominal != 0) out = 1;
