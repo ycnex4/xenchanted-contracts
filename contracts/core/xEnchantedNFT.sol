@@ -23,19 +23,19 @@ interface ICoreTokenURILens {
 }
 
 /**
- * xEnchantedNFT (Core)
- * - No admin keys, no pausable, no enumerable.
- * - init-once wiring for XNTD / STAKING / FORGE.
- * - Mint L1 via XEN burn (time-halving schedule).
- * - Enchant (NO MIXING):
- *    ordinary+ordinary => avg*3 (ordinary)
- *    forged+forged     => A+B   (forged, 1:1)
- * - Redeem: burn NFT => mint XNTD = nominal
- * - Phoenix-stake hooks (only STAKING)
- * - Forge hooks (only FORGE), base L1 always burned, nominal irrelevant.
+ * xEnchantedNFT is the Core ERC721 contract of the xEnchanted Crypto protocol.
+ *
+ * Built by Algorithmic Mining Lab, an open community focused on
+ * first-principles crypto and NFT-based algorithmic mining models.
+ *
+ * Core NFTs are minted through XEN burn, upgraded through enchant,
+ * redeemed into XNTD, consumed by Forge, or burned into stake positions
+ * and later restored through the Phoenix flow.
+ *
+ * Author: Sergey Stepanenko.
  */
 contract xEnchantedNFT is ERC721, IBurnRedeemable {
-    // --------- constants ----------
+    // PUBLIC CONSTANTS
     uint256 public constant HALVING_INTERVAL = 180 days;
     uint256 public constant ENCHANT_MULTIPLIER = 3;
     uint8   public constant MAX_LEVEL = 22;
@@ -44,7 +44,7 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
     uint256 public constant EARLY_PENALTY_BPS = 100; // 1%
     uint256 public constant MAX_WALLET_NFTS = 60;
 
-    // --------- immutable ----------
+    // IMMUTABLE PROTOCOL STATE
     IXENToken public immutable XEN;
     uint64 public immutable GENESIS_TS;
 
@@ -53,14 +53,15 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
 
     address public DEPLOYER;
 
-    // --------- init-once wiring ----------
+    // INIT-ONCE PROTOCOL WIRING
     IXNTDToken public XNTD;
     address public STAKING;
     address public FORGE;
     address public TOKEN_URI_LENS;
     bool public initialized;
 
-    // --------- data ----------
+    // INTERNAL NFT TYPES AND STORAGE
+    // INTERNAL TYPE TO DESCRIBE A CORE OR FORGED NFT
     struct NFTData {
     uint8   level;
     bool    isForged;
@@ -72,6 +73,7 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
     uint256 parentId1;
     uint256 parentId2;
 }
+    // PUBLIC VIEW TYPE FOR FRONTEND AND LENS READS
     struct CoreView {
         uint256 tokenId;
         address owner;
@@ -89,7 +91,7 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
     mapping(uint256 => NFTData) public nftData;
     uint256 private _nextId;
 
-    // --------- events ----------
+    // EVENTS
     event Init(address xntd, address staking, address forge);
 
     event Minted(
@@ -146,7 +148,7 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
         uint256 xntdBurned
     );
 
-    // --------- modifiers ----------
+    // MODIFIERS
     modifier onlyDeployer() {
         require(msg.sender == DEPLOYER, "DEP");
         _;
@@ -164,6 +166,11 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
         _;
     }
 
+    // CONSTRUCTOR
+
+    /**
+     * @dev sets immutable XEN and genesis values for this deployment
+     */
     constructor(
         address xenToken,
         uint256 initialNominal,
@@ -183,6 +190,11 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
         _nextId = 1;
     }
 
+    // ADMINLESS ONE-TIME URI WIRING
+
+    /**
+     * @dev sets the external tokenURI lens once before deployer rights are burned
+     */
     function setTokenURILens(address lens) external onlyDeployer {
         require(TOKEN_URI_LENS == address(0), "URI_SET");
         require(lens != address(0), "URI0");
@@ -190,6 +202,9 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
         TOKEN_URI_LENS = lens;
     }
 
+    /**
+     * @dev wires XNTD, Stake and Forge once, validates handshakes and burns deployer rights
+     */
     function init(address xntd, address staking, address forge) external onlyDeployer {
     require(!initialized, "INI2");
     require(xntd != address(0) && staking != address(0) && forge != address(0), "ADR");
@@ -234,42 +249,65 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
     emit Init(xntd, staking, forge);
 }
 
+    /**
+     * @dev returns true when an address contains deployed code
+     */
 function _isContract(address a) internal view returns (bool) {
     return a.code.length != 0;
 }
 
+    /**
+     * @dev checks whether a staticcall succeeds without decoding its return data
+     */
 function _staticOk(address target, bytes memory data) internal view returns (bool) {
     (bool ok, ) = target.staticcall(data);
     return ok;
 }
 
+    /**
+     * @dev reads an address through staticcall and reverts if the handshake fails
+     */
 function _readAddr(address target, bytes memory data) internal view returns (address out) {
     (bool ok, bytes memory ret) = target.staticcall(data);
     require(ok && ret.length >= 32, "HSHK");
     out = abi.decode(ret, (address));
 }
 
-    // --------- halving (computed) ----------
+    // HALVING LOGIC
+    /**
+     * @dev calculates the active halving epoch from the deployment genesis timestamp
+     */
     function _halvingIndex() internal view returns (uint256 k) {
     unchecked { k = (block.timestamp - GENESIS_TS) / HALVING_INTERVAL; }
     if (k > 255) k = 255; // sat: enough for shifts and any future math
     }
 
+    /**
+     * @dev applies binary halving to a value and never returns zero
+     */
     function _applyHalving(uint256 value, uint256 k) internal pure returns (uint256 out) {
         if (k >= 256) return 1;
         out = value >> k;
         if (out == 0) out = 1;
     }
 
+    /**
+     * @dev returns the current Core L1 nominal for the active epoch
+     */
     function currentBaseNominal() public view returns (uint256) {
         return _applyHalving(INITIAL_NOMINAL, _halvingIndex());
     }
 
+    /**
+     * @dev returns the current XEN burn amount required to mint a Core L1
+     */
     function currentXenBurnAmount() public view returns (uint256) {
         return _applyHalving(INITIAL_XEN_BURN, _halvingIndex());
     }
 
-    /// @notice global base APR for staking (bps), fixed at stake time in xEnchantedStake.
+    /**
+     * @dev returns the current global base APR for staking in basis points
+     */
     function baseAprBpsNow() public view returns (uint16) {
         uint256 k = _halvingIndex(); // 180d epochs
         uint256 dec = k * 100;       // -1% per epoch = -100 bps
@@ -277,7 +315,10 @@ function _readAddr(address target, bytes memory data) internal view returns (add
         return uint16(1000 - dec);   // 10% down to 2%
     }
 
-    // --------- mint L1 ----------
+    // USER ACTIONS: CORE MINT
+    /**
+     * @dev creates a Core L1 NFT by burning the current epoch XEN amount
+     */
     function mintWithXEN() external isInit nonReentrant {
     require(balanceOf(msg.sender) < MAX_WALLET_NFTS, "MAX_WALLET");
     
@@ -312,7 +353,10 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     emit Minted(id, msg.sender, 1, nom, false, nd.xenBurned, nd.xntdBurned);
 }
 
-    // --------- enchant (final canon, NO MIXING) ----------
+    // USER ACTIONS: ENCHANT
+    /**
+     * @dev consumes two same-type same-level NFTs and mints one next-level NFT
+     */
     function enchant(uint256 id1, uint256 id2) external isInit nonReentrant {
     require(id1 != id2, "SAME");
     require(ownerOf(id1) == msg.sender, "O1");
@@ -362,13 +406,16 @@ function _readAddr(address target, bytes memory data) internal view returns (add
 
     _assertInv(nd);
 
-    nftData[id] = nd;          // ✅ ОБЯЗАТЕЛЬНО
-    _safeMint(msg.sender, id); // ✅ safeMint после state
+    nftData[id] = nd;          // commit state before mint
+    _safeMint(msg.sender, id); // mint after state is committed
 
     emit Enchanted(id, id1, id2, msg.sender, newLvl, newNom, forged, nd.xenBurned, nd.xntdBurned);
 }
 
-    // --------- redeem ----------
+    // USER ACTIONS: REDEEM
+    /**
+     * @dev burns an owned Core or Forged NFT and mints XNTD equal to its nominal value
+     */
     function redeem(uint256 id)
     external
     isInit
@@ -377,24 +424,27 @@ function _readAddr(address target, bytes memory data) internal view returns (add
 {
     require(ownerOf(id) == msg.sender, "OWN");
 
-    // ✅ validate stored state before burning
+    // validate stored state before burning
     NFTData memory d = nftData[id];
     _assertInv(d);
 
     uint256 nom = d.nominal;
 
-    // ✅ Effects
+    // effects
     _burn(id);
     delete nftData[id];
 
-    // ✅ Interaction (reverts => whole tx reverts, including burn/delete)
+    // interaction: revert rolls back burn/delete
     XNTD.mint(msg.sender, nom);
 
     emit Redeemed(id, msg.sender, d.isForged, d.level, nom, nom);
     return nom;
 }
 
-    // --------- Phoenix stake hooks (only STAKING) ----------
+    // STAKING HOOKS
+    /**
+     * @dev burns an owned Core or Forged NFT for staking and returns its snapshot to Stake
+     */
     function burnForStaking(uint256 id, address ownerExpected)
     external
     onlyStaking
@@ -408,7 +458,7 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     _assertInv(snap);
     require(snap.level > 1, "L1_STAKE");
 
-    // ✅ Effects
+    // effects
     _burn(id);
     delete nftData[id];
 
@@ -416,6 +466,9 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     return snap;
 }
 
+    /**
+     * @dev restores the staked Core or Forged NFT with the same tokenId after stake redemption
+     */
     function redeemStakedAndPhoenixMint(
     address to,
     uint256 id,
@@ -428,12 +481,12 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     require(_ownerOf(id) == address(0), "EX");
     require(endTs > startTs, "TS");
 
-    // ✅ duration bounds: must match Stake rules (30..730 days)
+    // duration bounds: must match Stake rules (30..730 days)
     uint256 dur = uint256(endTs) - uint256(startTs);
     require(dur >= 30 days, "DUR_MIN");
     require(dur <= 730 days, "DUR_MAX");
 
-    // ✅ APR sanity: base APR in your protocol is 10%..2% => 1000..200 bps
+    // APR sanity: protocol base APR is 10%..2% => 1000..200 bps
     require(baseAprBpsAtStake >= 200 && baseAprBpsAtStake <= 1000, "APR");
     require(snap.level > 1, "L1_STAKE");
 
@@ -465,6 +518,9 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     emit Phoenix(id, to, matured, out.isForged, out.level, reward, out.nominal);
 }
 
+    /**
+     * @dev calculates matured stake reward using fixed stake APR inputs
+     */
     function _calcStakeReward(NFTData memory d, uint256 durationSec, uint16 baseAprBpsAtStake)
     internal
     pure
@@ -483,7 +539,10 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     return Math.mulDiv(d.nominal, num, 365 days * BPS_DENOM);
 }
 
-    // --------- Forge hooks (only FORGE) ----------
+    // FORGE HOOKS
+    /**
+     * @dev consumes a current-owner Core L1 NFT as the base requirement for Forge
+     */
     function burnL1ForForge(uint256 baseId, address ownerExpected)
     external
     onlyForge
@@ -496,8 +555,8 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     snap = nftData[baseId];
     _assertInv(snap);
 
-    require(!snap.isForged, "F1");   // ✅ только ordinary
-    require(snap.level == 1, "L1");  // ✅ только L1
+    require(!snap.isForged, "F1");   // Core L1 only
+    require(snap.level == 1, "L1");  // level 1 only
 
     _burn(baseId);
     delete nftData[baseId];
@@ -506,7 +565,9 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     return snap;
 }
 
-    /// @notice forge-mint forged NFT with explicit XNTD burn provenance
+    /**
+     * @dev mints a Forged NFT with XNTD burn provenance supplied by Forge
+     */
     function mintForgedFromXNTD(address to, uint256 nom, uint256 xntdTotalBurned)
     external
     onlyForge
@@ -540,10 +601,10 @@ function _readAddr(address target, bytes memory data) internal view returns (add
 
     _assertInv(nd);
 
-    // ✅ commit state BEFORE safeMint (safeMint may call onERC721Received)
+    // commit state before safeMint (safeMint may call onERC721Received)
     nftData[id] = nd;
 
-    // ✅ mint after state is consistent
+    // mint after state is consistent
     _safeMint(to, id);
 
     emit ForgeMint(id, to, nom, xntdTotalBurned);
@@ -551,6 +612,11 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     return id;
 }
 
+    // INTERNAL INVARIANTS
+
+    /**
+     * @dev validates NFT state invariants for Core and Forged NFTs
+     */
     function _assertInv(NFTData memory d) internal pure {
     // level + nominal
     require(d.level > 0, "L0");
@@ -585,6 +651,9 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     }
     uint256 private _lock;
 
+    /**
+     * @dev minimal reentrancy guard for state-changing protocol flows
+     */
     modifier nonReentrant() {
         require(_lock == 0, "RE");
         _lock = 1;
@@ -592,20 +661,36 @@ function _readAddr(address target, bytes memory data) internal view returns (add
         _lock = 0;
     }
 
+    // TOKEN URI
+
+    /**
+     * @dev delegates metadata rendering to the external tokenURI lens
+     */
     function tokenURI(uint256 id) public view override returns (string memory) {
         ownerOf(id); // revert if token does not exist
         require(TOKEN_URI_LENS != address(0), "URI");
         return ICoreTokenURILens(TOKEN_URI_LENS).tokenURI(id);
     }
 
+    // PUBLIC VIEW METHODS
+
+    /**
+     * @dev returns true when a tokenId currently exists
+     */
     function exists(uint256 id) external view returns (bool) {
     return _ownerOf(id) != address(0);
 }
 
+    /**
+     * @dev returns the next tokenId to be minted
+     */
     function nextId() external view returns (uint256) {
         return _nextId;
     }
 
+    /**
+     * @dev returns all currently owned tokenIds for a wallet
+     */
     function walletOfOwner(address owner) external view returns (uint256[] memory) {
         require(owner != address(0), "OW0");
 
@@ -631,6 +716,9 @@ function _readAddr(address target, bytes memory data) internal view returns (add
         return ids;
     }
 
+    /**
+     * @dev previews XNTD redeem output for an existing NFT
+     */
     function previewRedeem(uint256 id)
         external
         view
@@ -657,6 +745,9 @@ function _readAddr(address target, bytes memory data) internal view returns (add
         );
     }
 
+    /**
+     * @dev previews the result of enchanting two NFTs without changing state
+     */
     function previewEnchant(uint256 id1, uint256 id2)
         external
         view
@@ -712,6 +803,9 @@ function _readAddr(address target, bytes memory data) internal view returns (add
         return (true, "", forged, a.level + 1, newNom);
     }
 
+    /**
+     * @dev returns full Core/Forged NFT state for one tokenId
+     */
     function getCoreView(uint256 id) external view returns (CoreView memory) {
         address owner = ownerOf(id);
         NFTData memory d = nftData[id];
@@ -731,6 +825,9 @@ function _readAddr(address target, bytes memory data) internal view returns (add
         });
     }
 
+    /**
+     * @dev returns full Core/Forged NFT state for multiple tokenIds
+     */
     function getCoreViews(uint256[] calldata ids) external view returns (CoreView[] memory views_) {
         views_ = new CoreView[](ids.length);
 
@@ -755,13 +852,19 @@ function _readAddr(address target, bytes memory data) internal view returns (add
         }
     }
 
-    // --- XEN burn callback (required by XEN) ---
+    // XEN BURN CALLBACK
+    /**
+     * @dev callback required by XEN burn integration
+     */
     function onTokenBurned(address user, uint256 amount) external view override {
     require(msg.sender == address(XEN), "XEN_CB");
     user; amount;
 }
 
-    // --- ERC165: tell XEN we support IBurnRedeemable ---
+    // ERC165 SUPPORT
+    /**
+     * @dev reports ERC165 support for the XEN burn callback interface
+     */
     function supportsInterface(bytes4 interfaceId)
         public
         view
