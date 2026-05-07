@@ -1,7 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+/**
+ * xEnchantedNFTLens provides read-only protocol views for Core and Forged NFTs.
+ *
+ * The lens does not own protocol state and does not change Core behavior.
+ * Core remains the source of truth; this contract only aggregates data for
+ * frontend, explorer, and integration readability.
+ *
+ * Built by Algorithmic Mining Lab, an open community focused on
+ * first-principles crypto and NFT-based algorithmic mining models.
+ *
+ * Author: Sergey Stepanenko.
+ */
+
+/**
+ * @dev minimal Core read interface used by the NFT lens
+ */
 interface IxEnchantedNFTRead {
+    // INTERNAL TYPE TO READ CORE NFT DATA
     struct NFTData {
         uint8   level;
         bool    isForged;
@@ -56,8 +73,10 @@ interface IxEnchantedNFTRead {
 }
 
 contract xEnchantedNFTLens {
+    // IMMUTABLE CORE LINK
     IxEnchantedNFTRead public immutable CORE;
 
+    // PUBLIC VIEW TYPE TO DESCRIBE A CORE OR FORGED NFT
     struct TradeInfo {
         bool exists;
         address owner;
@@ -72,6 +91,7 @@ contract xEnchantedNFTLens {
         uint256 parentId2;
     }
 
+    // PUBLIC VIEW TYPE TO DESCRIBE CURRENT PROTOCOL PARAMETERS
     struct ProtocolParams {
         uint64 genesisTs;
         uint256 halvingInterval;
@@ -89,6 +109,7 @@ contract xEnchantedNFTLens {
         uint256 maxWalletNfts;
     }
 
+    // PUBLIC VIEW TYPE TO DESCRIBE CURRENT STAKE APR BREAKDOWN
     struct StakeAprPreview {
         bool exists;
         bool stakeable;
@@ -98,12 +119,17 @@ contract xEnchantedNFTLens {
         uint16 totalAprBps;
     }
 
+    // CONSTRUCTOR
     constructor(address core) {
         require(core != address(0), "C0");
         CORE = IxEnchantedNFTRead(core);
     }
 
-    // -------- Protocol params (Core truth) --------
+    // PUBLIC CONVENIENCE GETTERS
+
+    /**
+     * @dev returns current protocol parameters as read from Core
+     */
     function getProtocolParams() external view returns (ProtocolParams memory p) {
         uint64 genesis = CORE.GENESIS_TS();
         uint256 interval = CORE.HALVING_INTERVAL();
@@ -128,7 +154,9 @@ contract xEnchantedNFTLens {
         });
     }
 
-    // -------- Trade info (one call) --------
+    /**
+     * @dev returns Core/Forged NFT data and owner in one call
+     */
     function getTradeInfo(uint256 id)
         external
         view
@@ -162,11 +190,16 @@ contract xEnchantedNFTLens {
         );
     }
 
+    /**
+     * @dev returns Core/Forged NFT data as a struct for compact integrations
+     */
     function getTradeInfoStruct(uint256 id) external view returns (TradeInfo memory) {
         return _tradeInfo(id);
     }
 
-    // -------- Redeem preview --------
+    /**
+     * @dev previews redeem output for an existing Core or Forged NFT
+     */
     function previewRedeem(uint256 id)
         external
         view
@@ -184,7 +217,9 @@ contract xEnchantedNFTLens {
         return (true, owner, redeemAmount);
     }
 
-    // -------- Enchant preview (adapted from Core truth) --------
+    /**
+     * @dev previews the next NFT level and nominal produced by enchant
+     */
     function previewEnchant(uint256 id1, uint256 id2)
         external
         view
@@ -193,6 +228,9 @@ contract xEnchantedNFTLens {
         (ok, , newIsForged, newLevel, newNominal) = CORE.previewEnchant(id1, id2);
     }
 
+    /**
+     * @dev previews enchant and returns the Core reason string for failed checks
+     */
     function previewEnchantDetailed(uint256 id1, uint256 id2)
         external
         view
@@ -207,7 +245,9 @@ contract xEnchantedNFTLens {
         return CORE.previewEnchant(id1, id2);
     }
 
-    // -------- Stake APR preview (production staking rule: level >= 2) --------
+    /**
+     * @dev returns the current base APR and total APR for a stakeable NFT
+     */
     function previewStakeAPR(uint256 id)
         external
         view
@@ -217,6 +257,9 @@ contract xEnchantedNFTLens {
         return (p.exists && p.stakeable, p.baseAprBps, p.totalAprBps);
     }
 
+    /**
+     * @dev returns current stake APR breakdown using Core staking rules
+     */
     function previewStakeAPRBreakdown(uint256 id)
         public
         view
@@ -239,7 +282,11 @@ contract xEnchantedNFTLens {
         p.totalAprBps = p.baseAprBps + p.levelBonusBps + p.forgedBonusBps;
     }
 
-    // -------- internal helpers --------
+    // INTERNAL HELPERS
+
+    /**
+     * @dev reads owner and NFT data without reverting when the token does not exist
+     */
     function _tradeInfo(uint256 id) internal view returns (TradeInfo memory info) {
         (bool ok, bytes memory data) = address(CORE).staticcall(
             abi.encodeWithSelector(IxEnchantedNFTRead.ownerOf.selector, id)
@@ -261,6 +308,9 @@ contract xEnchantedNFTLens {
         info.parentId2 = d.parentId2;
     }
 
+    /**
+     * @dev checks token existence through Core ownerOf without bubbling reverts
+     */
     function _exists(uint256 id) internal view returns (bool) {
         (bool ok, bytes memory data) = address(CORE).staticcall(
             abi.encodeWithSelector(IxEnchantedNFTRead.ownerOf.selector, id)
