@@ -357,6 +357,7 @@ contract xEnchantedStakeTokenURILens {
             "' stroke='",
             border,
             "' stroke-width='2'/>",
+            _punchCardLayer(accent),
             "<text x='175' y='42' dominant-baseline='hanging' text-anchor='middle' fill='",
             accent,
             "' font-size='20' font-family='monospace'>",
@@ -432,6 +433,125 @@ contract xEnchantedStakeTokenURILens {
 
         return abi.encodePacked(a, b, c);
     }
+
+    /**
+     * @dev renders a low-opacity punch-card inspired texture behind the SVG foreground
+     */
+    function _punchCardLayer(
+        string memory ink
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodePacked(
+                "<g fill='",
+                ink,
+                "' font-family='monospace'>",
+
+                "<rect x='139' y='546' width='5' height='11' rx='1' fill-opacity='.088'/>",
+                "<text x='156' y='552' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.05'>9</text>",
+                "<text x='170' y='552' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.05'>9</text>",
+                "<rect x='181' y='546' width='5' height='11' rx='1' fill-opacity='.094'/>",
+                "<text x='198' y='552' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.052'>9</text>",
+                "<rect x='209' y='546' width='5' height='11' rx='1' fill-opacity='.10'/>",
+                "<rect x='223' y='546' width='5' height='11' rx='1' fill-opacity='.103'/>",
+                "<text x='240' y='552' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.055'>9</text>",
+                "<rect x='251' y='546' width='5' height='11' rx='1' fill-opacity='.106'/>",
+                "<text x='268' y='552' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.058'>9</text>",
+                "<rect x='279' y='546' width='5' height='11' rx='1' fill-opacity='.109'/>",
+                "<text x='296' y='552' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.06'>9</text>",
+                "<rect x='307' y='546' width='5' height='11' rx='1' fill-opacity='.114'/>",
+                "<text x='324' y='552' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.062'>9</text>",
+
+                "<text x='156' y='530' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.048'>8</text>",
+                "<text x='170' y='530' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.048'>8</text>",
+                "<rect x='181' y='524' width='5' height='11' rx='1' fill-opacity='.082'/>",
+                "<text x='198' y='530' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.05'>8</text>",
+                "<rect x='209' y='524' width='5' height='11' rx='1' fill-opacity='.088'/>",
+                "<text x='226' y='530' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.052'>8</text>",
+                "<rect x='237' y='524' width='5' height='11' rx='1' fill-opacity='.091'/>",
+                "<text x='254' y='530' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.054'>8</text>",
+                "<rect x='265' y='524' width='5' height='11' rx='1' fill-opacity='.095'/>",
+                "<text x='282' y='530' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.056'>8</text>",
+                "<rect x='293' y='524' width='5' height='11' rx='1' fill-opacity='.102'/>",
+                "<text x='310' y='530' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.058'>8</text>",
+                "<rect x='321' y='524' width='5' height='11' rx='1' fill-opacity='.108'/>",
+
+                "<rect x='181' y='502' width='5' height='11' rx='1' fill-opacity='.075'/>",
+                "<text x='198' y='508' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.045'>7</text>",
+                "<text x='212' y='508' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.045'>7</text>",
+                "<rect x='223' y='502' width='5' height='11' rx='1' fill-opacity='.082'/>",
+                "<text x='240' y='508' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.05'>7</text>",
+                "<rect x='251' y='502' width='5' height='11' rx='1' fill-opacity='.09'/>",
+                "<text x='268' y='508' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.055'>7</text>",
+                "<rect x='279' y='502' width='5' height='11' rx='1' fill-opacity='.098'/>",
+                "<text x='296' y='508' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.06'>7</text>",
+                "<rect x='307' y='502' width='5' height='11' rx='1' fill-opacity='.108'/>",
+                "<text x='324' y='508' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.06'>7</text>",
+
+                "<text x='198' y='486' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.04'>6</text>",
+                "<rect x='209' y='480' width='5' height='11' rx='1' fill-opacity='.065'/>",
+                "<text x='226' y='486' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.04'>6</text>",
+                "<text x='240' y='486' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.04'>6</text>",
+                "<rect x='251' y='480' width='5' height='11' rx='1' fill-opacity='.072'/>",
+                "<text x='268' y='486' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.045'>6</text>",
+                "<text x='282' y='486' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.045'>6</text>",
+                "<rect x='293' y='480' width='5' height='11' rx='1' fill-opacity='.082'/>",
+                "<text x='310' y='486' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.05'>6</text>",
+                "<rect x='321' y='480' width='5' height='11' rx='1' fill-opacity='.088'/>",
+
+                "<text x='212' y='464' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.036'>5</text>",
+                "<rect x='223' y='458' width='5' height='11' rx='1' fill-opacity='.058'/>",
+                "<text x='240' y='464' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.038'>5</text>",
+                "<text x='254' y='464' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.038'>5</text>",
+                "<rect x='265' y='458' width='5' height='11' rx='1' fill-opacity='.065'/>",
+                "<text x='282' y='464' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.042'>5</text>",
+                "<text x='296' y='464' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.042'>5</text>",
+                "<rect x='307' y='458' width='5' height='11' rx='1' fill-opacity='.072'/>",
+                "<text x='324' y='464' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.045'>5</text>",
+
+                "<text x='226' y='442' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.033'>4</text>",
+                "<rect x='237' y='436' width='5' height='11' rx='1' fill-opacity='.052'/>",
+                "<text x='254' y='442' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.035'>4</text>",
+                "<rect x='265' y='436' width='5' height='11' rx='1' fill-opacity='.058'/>",
+                "<rect x='279' y='436' width='5' height='11' rx='1' fill-opacity='.062'/>",
+                "<text x='296' y='442' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.038'>4</text>",
+                "<rect x='307' y='436' width='5' height='11' rx='1' fill-opacity='.068'/>",
+                "<text x='324' y='442' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.04'>4</text>",
+
+                "<text x='240' y='420' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.03'>3</text>",
+                "<rect x='251' y='414' width='5' height='11' rx='1' fill-opacity='.048'/>",
+                "<text x='268' y='420' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.032'>3</text>",
+                "<text x='282' y='420' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.032'>3</text>",
+                "<rect x='293' y='414' width='5' height='11' rx='1' fill-opacity='.055'/>",
+                "<text x='310' y='420' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.035'>3</text>",
+                "<rect x='321' y='414' width='5' height='11' rx='1' fill-opacity='.06'/>",
+
+                "<text x='254' y='398' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.028'>2</text>",
+                "<rect x='265' y='392' width='5' height='11' rx='1' fill-opacity='.044'/>",
+                "<text x='282' y='398' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.03'>2</text>",
+                "<rect x='293' y='392' width='5' height='11' rx='1' fill-opacity='.05'/>",
+                "<rect x='307' y='392' width='5' height='11' rx='1' fill-opacity='.054'/>",
+                "<text x='324' y='398' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.033'>2</text>",
+
+                "<text x='268' y='376' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.026'>1</text>",
+                "<rect x='279' y='370' width='5' height='11' rx='1' fill-opacity='.04'/>",
+                "<text x='296' y='376' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.028'>1</text>",
+                "<text x='310' y='376' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.028'>1</text>",
+                "<rect x='321' y='370' width='5' height='11' rx='1' fill-opacity='.046'/>",
+
+                "<text x='282' y='364' text-anchor='middle' dominant-baseline='middle' font-size='5' fill-opacity='.024'>43</text>",
+                "<text x='296' y='364' text-anchor='middle' dominant-baseline='middle' font-size='5' fill-opacity='.024'>44</text>",
+                "<text x='310' y='364' text-anchor='middle' dominant-baseline='middle' font-size='5' fill-opacity='.024'>45</text>",
+                "<text x='324' y='364' text-anchor='middle' dominant-baseline='middle' font-size='5' fill-opacity='.024'>46</text>",
+
+                "<text x='282' y='354' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.024'>0</text>",
+                "<text x='296' y='354' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.024'>0</text>",
+                "<rect x='307' y='348' width='5' height='11' rx='1' fill-opacity='.038'/>",
+                "<text x='324' y='354' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.026'>0</text>",
+                "</g>"
+            );
+    }
+
+
 
     // JSON METADATA
 

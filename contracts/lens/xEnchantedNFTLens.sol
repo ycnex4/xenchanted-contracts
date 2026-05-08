@@ -15,7 +15,7 @@ pragma solidity ^0.8.28;
  */
 
 /**
- * @dev minimal Core read interface used by the NFT lens
+ * @dev minimal Core read interface used by this read-only lens
  */
 interface IxEnchantedNFTRead {
     // INTERNAL TYPE TO READ CORE NFT DATA
@@ -76,7 +76,7 @@ contract xEnchantedNFTLens {
     // IMMUTABLE CORE LINK
     IxEnchantedNFTRead public immutable CORE;
 
-    // PUBLIC VIEW TYPE TO DESCRIBE A CORE OR FORGED NFT
+    // PUBLIC VIEW TYPE TO DESCRIBE CORE OR FORGED NFT DATA
     struct TradeInfo {
         bool exists;
         address owner;
@@ -155,7 +155,7 @@ contract xEnchantedNFTLens {
     }
 
     /**
-     * @dev returns Core/Forged NFT data and owner in one call
+     * @dev returns Core or Forged NFT data and owner in one call
      */
     function getTradeInfo(uint256 id)
         external
@@ -191,7 +191,7 @@ contract xEnchantedNFTLens {
     }
 
     /**
-     * @dev returns Core/Forged NFT data as a struct for compact integrations
+     * @dev returns Core or Forged NFT data as a struct for compact integrations
      */
     function getTradeInfoStruct(uint256 id) external view returns (TradeInfo memory) {
         return _tradeInfo(id);
@@ -258,7 +258,7 @@ contract xEnchantedNFTLens {
     }
 
     /**
-     * @dev returns current stake APR breakdown using Core staking rules
+     * @dev returns current stake APR breakdown using Core protocol rules
      */
     function previewStakeAPRBreakdown(uint256 id)
         public
