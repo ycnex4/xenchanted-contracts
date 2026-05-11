@@ -78,7 +78,7 @@ async function main() {
   // 6) Deploy Lens contracts
   // -----------------------------
   const NFTLens = await ethers.getContractFactory("xEnchantedNFTLens");
-  const nftLens = await NFTLens.deploy(coreAddr);
+  const nftLens = await NFTLens.deploy(coreAddr, stakeAddr);
   await nftLens.waitForDeployment();
   const nftLensAddr = await nftLens.getAddress();
   console.log("xEnchantedNFTLens deployed:", nftLensAddr);

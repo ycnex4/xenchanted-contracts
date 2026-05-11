@@ -371,6 +371,61 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
     }
 
     /**
+     * @dev returns current APR breakdown for a Core/Forged NFT using Stake rules
+     */
+    function previewStakeAPRBreakdown(uint256 id)
+        external
+        view
+        returns (
+            bool exists_,
+            bool stakeable,
+            uint16 baseAprBps,
+            uint16 levelBonusBps,
+            uint16 forgedBonusBps,
+            uint16 totalAprBps
+        )
+    {
+        if (!CORE.exists(id)) {
+            return (false, false, 0, 0, 0, 0);
+        }
+
+        (
+            uint8 level,
+            bool isForged,
+            uint64 createdAt,
+            uint64 forgedAt,
+            uint256 nominal,
+            uint256 xenBurned,
+            uint256 xntdBurned,
+            uint256 parentId1,
+            uint256 parentId2
+        ) = CORE.nftData(id);
+
+        createdAt; forgedAt; nominal; xenBurned; xntdBurned; parentId1; parentId2;
+
+        exists_ = true;
+        baseAprBps = CORE.baseAprBpsNow();
+
+        if (level <= 1) {
+            return (exists_, false, baseAprBps, 0, 0, 0);
+        }
+
+        stakeable = true;
+        (levelBonusBps, forgedBonusBps, totalAprBps) = _aprBreakdownRaw(level, isForged, baseAprBps);
+    }
+
+    /**
+     * @dev returns APR components from explicit inputs using Stake rules
+     */
+    function aprBreakdownFor(uint8 level, bool isForged, uint16 baseAprBps)
+        external
+        pure
+        returns (uint16 levelBonusBps, uint16 forgedBonusBps, uint16 totalAprBps)
+    {
+        return _aprBreakdownRaw(level, isForged, baseAprBps);
+    }
+
+    /**
      * @dev returns the stored stake position snapshot and timing data
      */
     function getPos(uint256 id) external view returns (Pos memory) {

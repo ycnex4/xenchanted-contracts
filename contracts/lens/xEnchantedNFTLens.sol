@@ -40,6 +40,8 @@ interface IxEnchantedNFTRead {
     function INITIAL_XEN_BURN() external view returns (uint256);
     function currentBaseNominal() external view returns (uint256);
     function currentXenBurnAmount() external view returns (uint256);
+    function currentEpoch() external view returns (uint256);
+    function nextHalvingTs() external view returns (uint256);
 
     function baseAprBpsNow() external view returns (uint16);
 
@@ -72,9 +74,24 @@ interface IxEnchantedNFTRead {
         );
 }
 
+interface IxEnchantedStakeRead {
+    function previewStakeAPRBreakdown(uint256 id)
+        external
+        view
+        returns (
+            bool exists_,
+            bool stakeable,
+            uint16 baseAprBps,
+            uint16 levelBonusBps,
+            uint16 forgedBonusBps,
+            uint16 totalAprBps
+        );
+}
+
 contract xEnchantedNFTLens {
-    // IMMUTABLE CORE LINK
+    // IMMUTABLE PROTOCOL LINKS
     IxEnchantedNFTRead public immutable CORE;
+    IxEnchantedStakeRead public immutable STAKE;
 
     // PUBLIC VIEW TYPE TO DESCRIBE CORE OR FORGED NFT DATA
     struct TradeInfo {
@@ -120,9 +137,11 @@ contract xEnchantedNFTLens {
     }
 
     // CONSTRUCTOR
-    constructor(address core) {
+    constructor(address core, address stake) {
         require(core != address(0), "C0");
+        require(stake != address(0), "S0");
         CORE = IxEnchantedNFTRead(core);
+        STAKE = IxEnchantedStakeRead(stake);
     }
 
     // PUBLIC CONVENIENCE GETTERS
@@ -133,14 +152,12 @@ contract xEnchantedNFTLens {
     function getProtocolParams() external view returns (ProtocolParams memory p) {
         uint64 genesis = CORE.GENESIS_TS();
         uint256 interval = CORE.HALVING_INTERVAL();
-        uint256 epoch = (block.timestamp - uint256(genesis)) / interval;
-        if (epoch > 255) epoch = 255;
 
         return ProtocolParams({
             genesisTs: genesis,
             halvingInterval: interval,
-            currentEpoch: epoch,
-            nextHalvingTs: uint256(genesis) + ((epoch + 1) * interval),
+            currentEpoch: CORE.currentEpoch(),
+            nextHalvingTs: CORE.nextHalvingTs(),
             initialNominal: CORE.INITIAL_NOMINAL(),
             currentBaseNominal: CORE.currentBaseNominal(),
             initialXenBurn: CORE.INITIAL_XEN_BURN(),
@@ -265,21 +282,14 @@ contract xEnchantedNFTLens {
         view
         returns (StakeAprPreview memory p)
     {
-        if (!_exists(id)) return p;
-
-        IxEnchantedNFTRead.NFTData memory d = CORE.nftData(id);
-        p.exists = true;
-        p.baseAprBps = CORE.baseAprBpsNow();
-
-        if (d.level <= 1) {
-            p.stakeable = false;
-            return p;
-        }
-
-        p.stakeable = true;
-        p.levelBonusBps = uint16(uint256(d.level - 1) * 100);
-        p.forgedBonusBps = d.isForged ? 500 : 0;
-        p.totalAprBps = p.baseAprBps + p.levelBonusBps + p.forgedBonusBps;
+        (
+            p.exists,
+            p.stakeable,
+            p.baseAprBps,
+            p.levelBonusBps,
+            p.forgedBonusBps,
+            p.totalAprBps
+        ) = STAKE.previewStakeAPRBreakdown(id);
     }
 
     // INTERNAL HELPERS

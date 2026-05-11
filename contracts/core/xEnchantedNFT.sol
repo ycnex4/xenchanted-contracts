@@ -296,6 +296,20 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     }
 
     /**
+     * @dev returns the active halving epoch from the Core source of truth
+     */
+    function currentEpoch() public view returns (uint256) {
+        return _halvingIndex();
+    }
+
+    /**
+     * @dev returns the timestamp of the next halving boundary
+     */
+    function nextHalvingTs() public view returns (uint256) {
+        return uint256(GENESIS_TS) + ((currentEpoch() + 1) * HALVING_INTERVAL);
+    }
+
+    /**
      * @dev returns the current Core L1 nominal for the active epoch
      */
     function currentBaseNominal() public view returns (uint256) {
