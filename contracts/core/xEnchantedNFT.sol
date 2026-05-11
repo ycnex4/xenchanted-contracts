@@ -91,6 +91,10 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
     mapping(uint256 => NFTData) public nftData;
     uint256 private _nextId;
 
+    // OWNER INDEX FOR FRONTEND INVENTORY
+    mapping(address => uint256[]) private _ownerTokenIds;
+    mapping(uint256 => uint256) private _ownerTokenIndex;
+
     // EVENTS
     event Init(address xntd, address staking, address forge);
 
@@ -661,6 +665,52 @@ function _readAddr(address target, bytes memory data) internal view returns (add
         _lock = 0;
     }
 
+    // OWNER INDEX
+
+    /**
+     * @dev keeps the owner inventory index in sync with every mint, burn and transfer
+     */
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override
+        returns (address previousOwner)
+    {
+        previousOwner = super._update(to, tokenId, auth);
+
+        if (previousOwner != address(0)) {
+            _removeTokenFromOwnerIndex(previousOwner, tokenId);
+        }
+
+        if (to != address(0)) {
+            _addTokenToOwnerIndex(to, tokenId);
+        }
+    }
+
+    /**
+     * @dev adds a tokenId to an owner's indexed inventory
+     */
+    function _addTokenToOwnerIndex(address to, uint256 tokenId) private {
+        _ownerTokenIndex[tokenId] = _ownerTokenIds[to].length;
+        _ownerTokenIds[to].push(tokenId);
+    }
+
+    /**
+     * @dev removes a tokenId from an owner's indexed inventory using swap-and-pop
+     */
+    function _removeTokenFromOwnerIndex(address from, uint256 tokenId) private {
+        uint256 lastIndex = _ownerTokenIds[from].length - 1;
+        uint256 tokenIndex = _ownerTokenIndex[tokenId];
+
+        if (tokenIndex != lastIndex) {
+            uint256 lastTokenId = _ownerTokenIds[from][lastIndex];
+            _ownerTokenIds[from][tokenIndex] = lastTokenId;
+            _ownerTokenIndex[lastTokenId] = tokenIndex;
+        }
+
+        _ownerTokenIds[from].pop();
+        delete _ownerTokenIndex[tokenId];
+    }
+
     // TOKEN URI
 
     /**
@@ -689,31 +739,35 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     }
 
     /**
-     * @dev returns all currently owned tokenIds for a wallet
+     * @dev returns all currently owned tokenIds for a wallet from the owner index
+     */
+    function tokensOfOwner(address owner) public view returns (uint256[] memory) {
+        require(owner != address(0), "OW0");
+        return _ownerTokenIds[owner];
+    }
+
+    /**
+     * @dev returns the tokenId owned by a wallet at a specific index
+     */
+    function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256) {
+        require(owner != address(0), "OW0");
+        require(index < _ownerTokenIds[owner].length, "IDX");
+        return _ownerTokenIds[owner][index];
+    }
+
+    /**
+     * @dev returns the number of tokenIds owned by a wallet
+     */
+    function ownerTokenCount(address owner) external view returns (uint256) {
+        require(owner != address(0), "OW0");
+        return _ownerTokenIds[owner].length;
+    }
+
+    /**
+     * @dev backwards-compatible alias for frontend inventory reads
      */
     function walletOfOwner(address owner) external view returns (uint256[] memory) {
-        require(owner != address(0), "OW0");
-
-        uint256 supplyUpper = _nextId;
-        uint256 count = 0;
-
-        for (uint256 id = 1; id < supplyUpper; ++id) {
-            if (_ownerOf(id) == owner) {
-                ++count;
-            }
-        }
-
-        uint256[] memory ids = new uint256[](count);
-        uint256 idx = 0;
-
-        for (uint256 id = 1; id < supplyUpper; ++id) {
-            if (_ownerOf(id) == owner) {
-                ids[idx] = id;
-                ++idx;
-            }
-        }
-
-        return ids;
+        return tokensOfOwner(owner);
     }
 
     /**

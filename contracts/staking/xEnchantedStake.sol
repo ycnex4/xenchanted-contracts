@@ -108,6 +108,10 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
 
     mapping(uint256 => Pos) public pos;
 
+    // OWNER INDEX FOR FRONTEND INVENTORY
+    mapping(address => uint256[]) private _ownerTokenIds;
+    mapping(uint256 => uint256) private _ownerTokenIndex;
+
     // PUBLIC CONSTANTS
 
     uint16 public constant MIN_DAYS = 30;
@@ -264,6 +268,52 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         emit StakeRedeemed(msg.sender, id, matured, reward, remintedNominal);
     }
 
+    // OWNER INDEX
+
+    /**
+     * @dev keeps the owner inventory index in sync with every mint, burn and transfer
+     */
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override
+        returns (address previousOwner)
+    {
+        previousOwner = super._update(to, tokenId, auth);
+
+        if (previousOwner != address(0)) {
+            _removeTokenFromOwnerIndex(previousOwner, tokenId);
+        }
+
+        if (to != address(0)) {
+            _addTokenToOwnerIndex(to, tokenId);
+        }
+    }
+
+    /**
+     * @dev adds a tokenId to an owner's indexed inventory
+     */
+    function _addTokenToOwnerIndex(address to, uint256 tokenId) private {
+        _ownerTokenIndex[tokenId] = _ownerTokenIds[to].length;
+        _ownerTokenIds[to].push(tokenId);
+    }
+
+    /**
+     * @dev removes a tokenId from an owner's indexed inventory using swap-and-pop
+     */
+    function _removeTokenFromOwnerIndex(address from, uint256 tokenId) private {
+        uint256 lastIndex = _ownerTokenIds[from].length - 1;
+        uint256 tokenIndex = _ownerTokenIndex[tokenId];
+
+        if (tokenIndex != lastIndex) {
+            uint256 lastTokenId = _ownerTokenIds[from][lastIndex];
+            _ownerTokenIds[from][tokenIndex] = lastTokenId;
+            _ownerTokenIndex[lastTokenId] = tokenIndex;
+        }
+
+        _ownerTokenIds[from].pop();
+        delete _ownerTokenIndex[tokenId];
+    }
+
     // PUBLIC CONVENIENCE GETTERS
 
     /**
@@ -328,31 +378,35 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
     }
 
     /**
-     * @dev returns Stake NFT ids owned by an address by scanning the Core tokenId range
+     * @dev returns all currently owned Stake NFT tokenIds for a wallet from the owner index
+     */
+    function tokensOfOwner(address owner) public view returns (uint256[] memory) {
+        require(owner != address(0), "OW0");
+        return _ownerTokenIds[owner];
+    }
+
+    /**
+     * @dev returns the Stake NFT tokenId owned by a wallet at a specific index
+     */
+    function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256) {
+        require(owner != address(0), "OW0");
+        require(index < _ownerTokenIds[owner].length, "IDX");
+        return _ownerTokenIds[owner][index];
+    }
+
+    /**
+     * @dev returns the number of Stake NFT tokenIds owned by a wallet
+     */
+    function ownerTokenCount(address owner) external view returns (uint256) {
+        require(owner != address(0), "OW0");
+        return _ownerTokenIds[owner].length;
+    }
+
+    /**
+     * @dev backwards-compatible alias for frontend inventory reads
      */
     function walletOfOwner(address owner) external view returns (uint256[] memory) {
-        require(owner != address(0), "OW0");
-
-        uint256 upper = CORE.nextId();
-        uint256 count = 0;
-
-        for (uint256 id = 1; id < upper; ++id) {
-            if (_ownerOf(id) == owner) {
-                ++count;
-            }
-        }
-
-        uint256[] memory ids = new uint256[](count);
-        uint256 idx = 0;
-
-        for (uint256 id = 1; id < upper; ++id) {
-            if (_ownerOf(id) == owner) {
-                ids[idx] = id;
-                ++idx;
-            }
-        }
-
-        return ids;
+        return tokensOfOwner(owner);
     }
 
     /**
