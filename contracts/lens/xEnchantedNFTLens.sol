@@ -20,10 +20,10 @@ pragma solidity ^0.8.28;
 interface IxEnchantedNFTRead {
     // INTERNAL TYPE TO READ CORE NFT DATA
     struct NFTData {
-        uint8   level;
-        bool    isForged;
-        uint64  createdAt;
-        uint64  forgedAt;
+        uint8 level;
+        bool isForged;
+        uint64 createdAt;
+        uint64 forgedAt;
         uint256 nominal;
         uint256 xenBurned;
         uint256 xntdBurned;
@@ -32,26 +32,41 @@ interface IxEnchantedNFTRead {
     }
 
     function nftData(uint256 id) external view returns (NFTData memory);
+
     function ownerOf(uint256 id) external view returns (address);
 
     function GENESIS_TS() external view returns (uint64);
+
     function HALVING_INTERVAL() external view returns (uint256);
+
     function INITIAL_NOMINAL() external view returns (uint256);
+
     function INITIAL_XEN_BURN() external view returns (uint256);
+
     function currentBaseNominal() external view returns (uint256);
+
     function currentXenBurnAmount() external view returns (uint256);
+
     function currentEpoch() external view returns (uint256);
+
     function nextHalvingTs() external view returns (uint256);
 
     function baseAprBpsNow() external view returns (uint16);
 
     function ENCHANT_MULTIPLIER() external view returns (uint256);
+
     function MAX_LEVEL() external view returns (uint8);
+
     function BPS_DENOM() external view returns (uint256);
+
     function EARLY_PENALTY_BPS() external view returns (uint256);
+
     function MAX_WALLET_NFTS() external view returns (uint256);
 
-    function previewEnchant(uint256 id1, uint256 id2)
+    function previewEnchant(
+        uint256 id1,
+        uint256 id2
+    )
         external
         view
         returns (
@@ -62,7 +77,9 @@ interface IxEnchantedNFTRead {
             uint256 resultNominal
         );
 
-    function previewRedeem(uint256 id)
+    function previewRedeem(
+        uint256 id
+    )
         external
         view
         returns (
@@ -75,7 +92,9 @@ interface IxEnchantedNFTRead {
 }
 
 interface IxEnchantedStakeRead {
-    function previewStakeAPRBreakdown(uint256 id)
+    function previewStakeAPRBreakdown(
+        uint256 id
+    )
         external
         view
         returns (
@@ -140,6 +159,9 @@ contract xEnchantedNFTLens {
     constructor(address core, address stake) {
         require(core != address(0), "C0");
         require(stake != address(0), "S0");
+        require(core.code.length != 0, "C_CODE");
+        require(stake.code.length != 0, "S_CODE");
+
         CORE = IxEnchantedNFTRead(core);
         STAKE = IxEnchantedStakeRead(stake);
     }
@@ -149,32 +171,39 @@ contract xEnchantedNFTLens {
     /**
      * @dev returns current protocol parameters as read from Core
      */
-    function getProtocolParams() external view returns (ProtocolParams memory p) {
+    function getProtocolParams()
+        external
+        view
+        returns (ProtocolParams memory p)
+    {
         uint64 genesis = CORE.GENESIS_TS();
         uint256 interval = CORE.HALVING_INTERVAL();
 
-        return ProtocolParams({
-            genesisTs: genesis,
-            halvingInterval: interval,
-            currentEpoch: CORE.currentEpoch(),
-            nextHalvingTs: CORE.nextHalvingTs(),
-            initialNominal: CORE.INITIAL_NOMINAL(),
-            currentBaseNominal: CORE.currentBaseNominal(),
-            initialXenBurn: CORE.INITIAL_XEN_BURN(),
-            currentXenBurnAmount: CORE.currentXenBurnAmount(),
-            enchantMultiplier: CORE.ENCHANT_MULTIPLIER(),
-            maxLevel: CORE.MAX_LEVEL(),
-            baseAprBpsNow: CORE.baseAprBpsNow(),
-            bpsDenom: CORE.BPS_DENOM(),
-            earlyPenaltyBps: CORE.EARLY_PENALTY_BPS(),
-            maxWalletNfts: CORE.MAX_WALLET_NFTS()
-        });
+        return
+            ProtocolParams({
+                genesisTs: genesis,
+                halvingInterval: interval,
+                currentEpoch: CORE.currentEpoch(),
+                nextHalvingTs: CORE.nextHalvingTs(),
+                initialNominal: CORE.INITIAL_NOMINAL(),
+                currentBaseNominal: CORE.currentBaseNominal(),
+                initialXenBurn: CORE.INITIAL_XEN_BURN(),
+                currentXenBurnAmount: CORE.currentXenBurnAmount(),
+                enchantMultiplier: CORE.ENCHANT_MULTIPLIER(),
+                maxLevel: CORE.MAX_LEVEL(),
+                baseAprBpsNow: CORE.baseAprBpsNow(),
+                bpsDenom: CORE.BPS_DENOM(),
+                earlyPenaltyBps: CORE.EARLY_PENALTY_BPS(),
+                maxWalletNfts: CORE.MAX_WALLET_NFTS()
+            });
     }
 
     /**
      * @dev returns Core or Forged NFT data and owner in one call
      */
-    function getTradeInfo(uint256 id)
+    function getTradeInfo(
+        uint256 id
+    )
         external
         view
         returns (
@@ -210,18 +239,18 @@ contract xEnchantedNFTLens {
     /**
      * @dev returns Core or Forged NFT data as a struct for compact integrations
      */
-    function getTradeInfoStruct(uint256 id) external view returns (TradeInfo memory) {
+    function getTradeInfoStruct(
+        uint256 id
+    ) external view returns (TradeInfo memory) {
         return _tradeInfo(id);
     }
 
     /**
      * @dev previews redeem output for an existing Core or Forged NFT
      */
-    function previewRedeem(uint256 id)
-        external
-        view
-        returns (bool exists, address owner, uint256 xntdOut)
-    {
+    function previewRedeem(
+        uint256 id
+    ) external view returns (bool exists, address owner, uint256 xntdOut) {
         (bool ownerOk, bytes memory ownerData) = address(CORE).staticcall(
             abi.encodeWithSelector(IxEnchantedNFTRead.ownerOf.selector, id)
         );
@@ -237,18 +266,27 @@ contract xEnchantedNFTLens {
     /**
      * @dev previews the next NFT level and nominal produced by enchant
      */
-    function previewEnchant(uint256 id1, uint256 id2)
+    function previewEnchant(
+        uint256 id1,
+        uint256 id2
+    )
         external
         view
         returns (bool ok, uint8 newLevel, bool newIsForged, uint256 newNominal)
     {
-        (ok, , newIsForged, newLevel, newNominal) = CORE.previewEnchant(id1, id2);
+        (ok, , newIsForged, newLevel, newNominal) = CORE.previewEnchant(
+            id1,
+            id2
+        );
     }
 
     /**
      * @dev previews enchant and returns the Core reason string for failed checks
      */
-    function previewEnchantDetailed(uint256 id1, uint256 id2)
+    function previewEnchantDetailed(
+        uint256 id1,
+        uint256 id2
+    )
         external
         view
         returns (
@@ -265,7 +303,9 @@ contract xEnchantedNFTLens {
     /**
      * @dev returns the current base APR and total APR for a stakeable NFT
      */
-    function previewStakeAPR(uint256 id)
+    function previewStakeAPR(
+        uint256 id
+    )
         external
         view
         returns (bool exists, uint16 baseAprBpsNow_, uint16 aprBpsNow_)
@@ -277,11 +317,9 @@ contract xEnchantedNFTLens {
     /**
      * @dev returns current stake APR breakdown using Core protocol rules
      */
-    function previewStakeAPRBreakdown(uint256 id)
-        public
-        view
-        returns (StakeAprPreview memory p)
-    {
+    function previewStakeAPRBreakdown(
+        uint256 id
+    ) public view returns (StakeAprPreview memory p) {
         (
             p.exists,
             p.stakeable,
@@ -297,7 +335,9 @@ contract xEnchantedNFTLens {
     /**
      * @dev reads owner and NFT data without reverting when the token does not exist
      */
-    function _tradeInfo(uint256 id) internal view returns (TradeInfo memory info) {
+    function _tradeInfo(
+        uint256 id
+    ) internal view returns (TradeInfo memory info) {
         (bool ok, bytes memory data) = address(CORE).staticcall(
             abi.encodeWithSelector(IxEnchantedNFTRead.ownerOf.selector, id)
         );
