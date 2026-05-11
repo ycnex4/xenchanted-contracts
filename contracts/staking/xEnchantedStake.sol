@@ -412,7 +412,7 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
     /**
      * @dev previews stake eligibility, APR breakdown and expected reward for a Core or Forged NFT
      */
-    function previewStake(uint256 id, uint16 durationDays)
+    function previewStake(uint256 id, uint16 durationDays, address user)
         external
         view
         returns (
@@ -438,8 +438,16 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
             return (false, "DUR_MAX", false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         }
 
+        if (user == address(0)) {
+            return (false, "USR0", false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        }
+
         if (!CORE.exists(id)) {
             return (false, "NO_NFT", false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        }
+
+        if (CORE.ownerOf(id) != user) {
+            return (false, "OWN", false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         }
 
         if (_ownerOf(id) != address(0) || pos[id].active) {

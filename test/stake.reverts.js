@@ -80,6 +80,31 @@ describe("xEnchantedStake - negative tests", function () {
     await expect(stake.connect(alice).stake(1, 30)).to.be.revertedWith("L1_STAKE");
   });
 
+  it("previewStake() validates the intended staker owner", async function () {
+    const env = await deploy();
+    const { alice, bob, stake } = env;
+
+    const tokenId = await mintOrdinaryL2ToAlice(env);
+
+    const ok = await stake.previewStake(tokenId, 30, alice.address);
+    expect(ok[0]).to.equal(true);
+    expect(ok[1]).to.equal("");
+
+    const wrongOwner = await stake.previewStake(tokenId, 30, bob.address);
+    expect(wrongOwner[0]).to.equal(false);
+    expect(wrongOwner[1]).to.equal("OWN");
+  });
+
+  it("previewStake() rejects zero intended staker", async function () {
+    const env = await deploy();
+    const { stake } = env;
+
+    const tokenId = await mintOrdinaryL2ToAlice(env);
+    const preview = await stake.previewStake(tokenId, 30, ethers.ZeroAddress);
+    expect(preview[0]).to.equal(false);
+    expect(preview[1]).to.equal("USR0");
+  });
+
   it("stake() reverts if caller is not owner of Core NFT", async function () {
     const env = await deploy();
     const { bob, stake } = env;
