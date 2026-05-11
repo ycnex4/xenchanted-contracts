@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "../core/xEnchantedNFT.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -58,6 +57,8 @@ contract xEnchantedTokenURILens {
      */
     constructor(address core) {
         require(core != address(0), "C0");
+        require(core.code.length != 0, "C_CODE");
+
         CORE = IxEnchantedNFTRead(core);
     }
 
@@ -226,7 +227,6 @@ contract xEnchantedTokenURILens {
                 "<g fill='",
                 ink,
                 "' font-family='monospace'>",
-
                 "<rect x='139' y='546' width='5' height='11' rx='1' fill-opacity='.088'/>",
                 "<text x='156' y='552' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.05'>9</text>",
                 "<text x='170' y='552' text-anchor='middle' dominant-baseline='middle' font-size='10' fill-opacity='.05'>9</text>",
@@ -321,7 +321,6 @@ contract xEnchantedTokenURILens {
                 "</g>"
             );
     }
-
 
     // SVG RENDERING
 
