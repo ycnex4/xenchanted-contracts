@@ -281,9 +281,8 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     /**
      * @dev calculates the active halving epoch from the deployment genesis timestamp
      */
-    function _halvingIndex() internal view returns (uint256 k) {
-    unchecked { k = (block.timestamp - GENESIS_TS) / HALVING_INTERVAL; }
-    if (k > 255) k = 255; // sat: enough for shifts and any future math
+    function _halvingIndex() internal view returns (uint256) {
+        return epochAt(block.timestamp);
     }
 
     /**
@@ -296,17 +295,33 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     }
 
     /**
+     * @dev returns the halving epoch for an arbitrary timestamp
+     */
+    function epochAt(uint256 timestamp) public view returns (uint256 k) {
+        if (timestamp <= uint256(GENESIS_TS)) {
+            return 0;
+        }
+
+        unchecked {
+            k = (timestamp - uint256(GENESIS_TS)) / HALVING_INTERVAL;
+        }
+
+        if (k > 255) k = 255;
+    }
+
+    /**
      * @dev returns the active halving epoch from the Core source of truth
      */
     function currentEpoch() public view returns (uint256) {
-        return _halvingIndex();
+        return epochAt(block.timestamp);
     }
 
     /**
      * @dev returns the timestamp of the next halving boundary
      */
     function nextHalvingTs() public view returns (uint256) {
-        return uint256(GENESIS_TS) + ((currentEpoch() + 1) * HALVING_INTERVAL);
+        uint256 k = currentEpoch();
+        return uint256(GENESIS_TS) + ((k + 1) * HALVING_INTERVAL);
     }
 
     /**

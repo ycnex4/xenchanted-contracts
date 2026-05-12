@@ -19,6 +19,7 @@ interface IxEnchantedNFT {
     }
 
     function baseAprBpsNow() external view returns (uint16);
+    function epochAt(uint256 timestamp) external view returns (uint256);
 
     function burnForStaking(uint256 id, address ownerExpected)
         external
@@ -92,6 +93,7 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         uint32 startTs;
         uint32 endTs;
         uint16 durationDays;
+        uint256 stakeEpoch;
         bool active;
         bool matured;
         uint16 baseAprBps;
@@ -590,6 +592,7 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         bool matured = active && block.timestamp >= uint256(p.endTs);
 
         uint16 durationDays = 0;
+        uint256 stakeEpoch = 0;
         uint16 levelBonusBps = 0;
         uint16 forgedBonusBps = 0;
         uint16 totalAprBps = 0;
@@ -601,6 +604,7 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         if (active) {
             uint256 durationSec = uint256(p.endTs) - uint256(p.startTs);
             durationDays = uint16(durationSec / 1 days);
+            stakeEpoch = CORE.epochAt(uint256(p.startTs));
             (levelBonusBps, forgedBonusBps, totalAprBps) = _aprBreakdown(p.snap, p.baseAprBps);
             expectedReward = _calcReward(p.snap.nominal, totalAprBps, durationSec);
             availableReward = matured ? expectedReward : 0;
@@ -617,6 +621,7 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
             startTs: p.startTs,
             endTs: p.endTs,
             durationDays: durationDays,
+            stakeEpoch: stakeEpoch,
             active: p.active,
             matured: matured,
             baseAprBps: p.baseAprBps,

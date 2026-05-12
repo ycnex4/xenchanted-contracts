@@ -24,6 +24,7 @@ interface IxEnchantedStakeRead {
         uint32 startTs;
         uint32 endTs;
         uint16 durationDays;
+        uint256 stakeEpoch;
         bool active;
         bool matured;
         uint16 baseAprBps;
@@ -80,6 +81,7 @@ contract xEnchantedStakeTokenURILens {
         uint32 startTs;
         uint32 endTs;
         uint16 durationDays;
+        uint256 stakeEpoch;
         uint16 baseAprBps;
         uint16 levelBonusBps;
         uint16 forgedBonusBps;
@@ -131,6 +133,7 @@ contract xEnchantedStakeTokenURILens {
         p.startTs = v.startTs;
         p.endTs = v.endTs;
         p.durationDays = v.durationDays;
+        p.stakeEpoch = v.stakeEpoch;
         p.baseAprBps = v.baseAprBps;
         p.levelBonusBps = v.levelBonusBps;
         p.forgedBonusBps = v.forgedBonusBps;
@@ -158,6 +161,7 @@ contract xEnchantedStakeTokenURILens {
             uint32 startTs,
             uint32 endTs,
             uint16 durationDays,
+            uint256 stakeEpoch,
             uint16 baseAprBps,
             uint16 levelBonusBps,
             uint16 forgedBonusBps,
@@ -177,6 +181,7 @@ contract xEnchantedStakeTokenURILens {
             v.startTs,
             v.endTs,
             v.durationDays,
+            v.stakeEpoch,
             v.baseAprBps,
             v.levelBonusBps,
             v.forgedBonusBps,
@@ -394,18 +399,21 @@ contract xEnchantedStakeTokenURILens {
             "<text x='24' y='276' fill='#EAEAF2' font-size='14' font-family='monospace'>DURATION_DAYS: ",
             _u(uint256(p.durationDays)),
             "</text>",
-            "<text x='24' y='312' fill='#EAEAF2' font-size='14' font-family='monospace'>TOTAL_APR: ",
+            "<text x='24' y='300' fill='#EAEAF2' font-size='14' font-family='monospace'>STAKE_EPOCH: ",
+            _u(p.stakeEpoch),
+            "</text>",
+            "<text x='24' y='324' fill='#EAEAF2' font-size='14' font-family='monospace'>TOTAL_APR: ",
             _fmtApr(uint256(p.totalAprBps)),
             "</text>",
-            "<text x='24' y='336' fill='#B8B8C8' font-size='12' font-family='monospace'>BASE/LEVEL/FORGED: ",
+            "<text x='24' y='348' fill='#B8B8C8' font-size='12' font-family='monospace'>BASE/LEVEL/FORGED: ",
             _fmtApr(uint256(p.baseAprBps)),
             " / ",
             _fmtApr(uint256(p.levelBonusBps)),
             " / ",
             _fmtApr(uint256(p.forgedBonusBps)),
             "</text>",
-            "<text x='24' y='372' fill='#EAEAF2' font-size='14' font-family='monospace'>ENDS_AT:</text>",
-            "<text x='24' y='396' fill='#EAEAF2' font-size='14' font-family='monospace'>",
+            "<text x='24' y='384' fill='#EAEAF2' font-size='14' font-family='monospace'>ENDS_AT:</text>",
+            "<text x='24' y='408' fill='#EAEAF2' font-size='14' font-family='monospace'>",
             _u(uint256(p.endTs)),
             "</text>"
         );
@@ -593,6 +601,9 @@ contract xEnchantedStakeTokenURILens {
             '"},',
             '{"trait_type":"DurationDays","value":"',
             _u(uint256(p.durationDays)),
+            '"},',
+            '{"trait_type":"StakeEpoch","value":"',
+            _u(p.stakeEpoch),
             '"},',
             '{"trait_type":"EndsAt","value":"',
             _u(uint256(p.endTs)),
