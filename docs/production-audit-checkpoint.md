@@ -8,11 +8,103 @@ Current contract refactor checkpoint is stable.
 
 
 
-Latest confirmed test suite: 57 passing.
+Latest confirmed local test suite: 70 passing.
 
-
+Latest confirmed mainnet fork XEN integration test: 2 passing.
 
 Working tree after checkpoint: nothing to commit, working tree clean.
+
+
+
+Post-Theo security hardening checkpoint
+
+This checkpoint was updated after external review feedback from Theo.
+
+Important clarification:
+
+This document is not an independent third-party audit and is not formal verification.
+
+It is an internal smart contract security and protocol integrity review checkpoint supported by additional static analysis, local tests, and mainnet fork integration testing.
+
+Security hardening completed after review feedback:
+
+Slither 0.11.5 production-filtered static analysis was run.
+
+Initial production-filtered Slither result: 111 findings.
+
+Final production-filtered Slither result: 81 findings.
+
+Final Slither high issues: 0.
+
+Remaining Slither findings were manually triaged and documented in:
+
+docs/security/slither-triage.md
+
+Remediated findings include:
+
+unused helper functions removed.
+
+redundant statements removed.
+
+unused Forge burn hook return value removed.
+
+Forge public entry point hardened with nonReentrant.
+
+tokenURI bytes concatenation changed from abi.encodePacked(a, b, c) to bytes.concat(a, b, c).
+
+Init event address parameters indexed.
+
+Accepted/documented findings include:
+
+partial tuple usage in view/preview functions.
+
+staticcall usage in read-only lens/tokenURI/init handshake flows.
+
+batch view external call inside loop.
+
+timestamp usage for epochs, APR decay and staking maturity.
+
+strict equality invariant/sentinel checks.
+
+remaining reentrancy-pattern warnings for trusted one-time wiring and protocol flows.
+
+missing-inheritance style suggestions.
+
+naming-convention style suggestions.
+
+divide-before-multiply in the intentional Core enchant nominal formula.
+
+Real XEN integration checkpoint:
+
+A Hardhat mainnet fork test was added and executed against the real Ethereum XEN contract:
+
+0x06450dEe7FD2Fb8E39061434BAbCFC05599a6Fb8
+
+The fork test confirmed:
+
+real XEN metadata and 18-decimal configuration.
+
+Core deployment using the real XEN address.
+
+required XEN allowance from user to Core before mintWithXEN.
+
+successful mintWithXEN execution against the real XEN burn flow.
+
+correct Core L1 state after mint.
+
+Result: 2 passing.
+
+Important finding:
+
+Real XEN requires ERC20 allowance before Core.mintWithXEN can burn the user's XEN.
+
+MockXEN and local tests were updated to match this real-XEN behavior.
+
+A negative local test now confirms that mintWithXEN reverts without XEN allowance.
+
+Details:
+
+docs/security/mainnet-fork-xen.md
 
 
 
@@ -514,9 +606,11 @@ Important future mainnet change:
 
 
 
-MockXEN must be removed.
+MockXEN must not be deployed to mainnet.
 
-Real XEN address must be used.
+Real Ethereum XEN address must be used.
+
+Mint L1 must account for real XEN allowance behavior: user must approve Core before mintWithXEN if allowance is insufficient.
 
 
 
@@ -608,6 +702,8 @@ disable L1 stake.
 
 remove Forge approve flow.
 
+add/verify Mint L1 XEN approve flow when allowance is insufficient.
+
 update Forge min/max validation.
 
 read production XEN burn amount from contract/Lens.
@@ -630,7 +726,9 @@ Before mainnet:
 
 create deploy-mainnet.js using real XEN address.
 
-run full test suite.
+run full local test suite.
+
+run mainnet fork XEN integration test.
 
 optionally add deployment verification script.
 
@@ -682,7 +780,9 @@ Charts/distributions.
 
 Mainnet deployment checklist.
 
-External audit.
+Independent external audit.
+
+Formal verification / invariant testing expansion.
 
 
 
