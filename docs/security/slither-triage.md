@@ -137,3 +137,47 @@ The checks validate protocol state structure, including:
 Resolution: no code change.
 
 Status: accepted / documented.
+
+### Reentrancy warnings
+
+Slither reported reentrancy-pattern findings in `xEnchantedNFT.init`, `xEnchantedNFT.mintWithXEN`, `xEnchantedStake.stake`, and previously in `xEnchantedForge.forge`.
+
+Manual assessment: partially remediated, partially accepted with documentation and follow-up testing.
+
+#### Forge reentrancy hardening
+
+Slither previously reported an event-after-external-calls pattern in `xEnchantedForge.forge`.
+
+Resolution: added a local `nonReentrant` guard to the Forge contract and applied it to the public `forge` entry point.
+
+Status: fixed / hardened.
+
+#### Core init
+
+`xEnchantedNFT.init` performs a one-time call to `XNTD.bindForge(forge)` during immutable protocol wiring.
+
+Manual assessment: accepted.
+
+Reason: `init` is restricted to the original deployer, performs explicit contract/address handshakes before binding, and burns deployer rights after successful initialization. The concrete `XNTDToken.bindForge` implementation only sets the one-time Forge binding and emits an event. It does not transfer tokens, call external contracts, invoke callbacks, or call back into Core. If binding fails, the entire init transaction reverts.
+
+Status: accepted / documented.
+
+#### Core mintWithXEN
+
+`xEnchantedNFT.mintWithXEN` calls `XEN.burn(msg.sender, xenAmt)` before minting the Core L1 NFT.
+
+Manual assessment: accepted for the current Sepolia review, with required follow-up before mainnet.
+
+Reason: this is the intended XEN-style burn callback flow. The function is protected by Core `nonReentrant`, and Core state changes occur only after the burn call succeeds. However, because Sepolia tests currently use `MockXEN`, this path should be covered by a mainnet fork test against the real XEN contract before mainnet deployment.
+
+Status: accepted / documented; mainnet fork test required before mainnet.
+
+#### Stake stake()
+
+`xEnchantedStake.stake` calls the trusted immutable Core contract through `CORE.burnForStaking(id, msg.sender)` before recording the stake position and minting the Stake NFT.
+
+Manual assessment: accepted.
+
+Reason: `stake` is protected by Stake `nonReentrant`. The external call is to the protocol Core contract, not to an arbitrary user-controlled target. Core `burnForStaking` is restricted by `onlyStaking`, protected by Core `nonReentrant`, validates ownership and NFT state, burns the Core/Forged NFT, and returns a snapshot. Stake then records the position before `_safeMint`.
+
+Status: accepted / documented. Additional targeted reentrancy tests around stake mint receiver behavior are recommended before mainnet.
