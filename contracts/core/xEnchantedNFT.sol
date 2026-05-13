@@ -261,14 +261,6 @@ function _isContract(address a) internal view returns (bool) {
 }
 
     /**
-     * @dev checks whether a staticcall succeeds without decoding its return data
-     */
-function _staticOk(address target, bytes memory data) internal view returns (bool) {
-    (bool ok, ) = target.staticcall(data);
-    return ok;
-}
-
-    /**
      * @dev reads an address through staticcall and reverts if the handshake fails
      */
 function _readAddr(address target, bytes memory data) internal view returns (address out) {

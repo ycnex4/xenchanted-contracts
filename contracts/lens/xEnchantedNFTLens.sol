@@ -358,13 +358,4 @@ contract xEnchantedNFTLens {
         info.parentId2 = d.parentId2;
     }
 
-    /**
-     * @dev checks token existence through Core ownerOf without bubbling reverts
-     */
-    function _exists(uint256 id) internal view returns (bool) {
-        (bool ok, bytes memory data) = address(CORE).staticcall(
-            abi.encodeWithSelector(IxEnchantedNFTRead.ownerOf.selector, id)
-        );
-        return ok && data.length != 0;
-    }
 }
