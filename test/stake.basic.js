@@ -44,6 +44,7 @@ describe("xEnchantedStake - basic tests", function () {
   async function mintL1(env, who = env.alice) {
     const { xen, core } = env;
     await xen.faucet(who.address, ethers.parseEther("1000"));
+    await xen.connect(who).approve(await core.getAddress(), await core.currentXenBurnAmount());
     const tx = await core.connect(who).mintWithXEN();
     const rc = await tx.wait();
     const log = rc.logs.find((l) => l.fragment && l.fragment.name === "Minted");

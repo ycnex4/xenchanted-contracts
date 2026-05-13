@@ -67,6 +67,7 @@ describe("Production genesis constants", function () {
     await xen.faucet(alice.address, initialXenBurn);
 
     const xenBefore = await xen.balanceOf(alice.address);
+    await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
     await core.connect(alice).mintWithXEN();
     const xenAfter = await xen.balanceOf(alice.address);
 

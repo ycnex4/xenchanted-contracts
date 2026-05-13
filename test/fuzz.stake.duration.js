@@ -45,7 +45,9 @@ describe("Fuzz: stake duration", function () {
     const { alice, xen, core } = env;
 
     await xen.faucet(alice.address, ethers.parseEther("1000"));
+    await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
     await core.connect(alice).mintWithXEN(); // id=1
+    await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
     await core.connect(alice).mintWithXEN(); // id=2
     await core.connect(alice).enchant(1, 2); // id=3
 

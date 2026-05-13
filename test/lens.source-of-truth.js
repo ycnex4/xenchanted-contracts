@@ -62,7 +62,9 @@ describe("Lens source-of-truth views", function () {
 
     await xen.faucet(alice.address, ethers.parseEther("1000000000"));
 
+    await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
     await core.connect(alice).mintWithXEN(); // id 1
+    await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
     await core.connect(alice).mintWithXEN(); // id 2
     await core.connect(alice).enchant(1, 2); // id 3
 

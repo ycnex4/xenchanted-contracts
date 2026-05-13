@@ -40,6 +40,7 @@ describe("xEnchantedStake - negative tests", function () {
   async function mintOrdinaryL1ToAlice(env) {
     const { alice, xen, core } = env;
     await xen.faucet(alice.address, ethers.parseEther("1000"));
+    await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
     await core.connect(alice).mintWithXEN(); // id=1 in fresh fixture
     return 1;
   }
@@ -47,7 +48,9 @@ describe("xEnchantedStake - negative tests", function () {
   async function mintOrdinaryL2ToAlice(env) {
     const { alice, xen, core } = env;
     await xen.faucet(alice.address, ethers.parseEther("1000"));
+    await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
     await core.connect(alice).mintWithXEN(); // id=1
+    await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
     await core.connect(alice).mintWithXEN(); // id=2
     await core.connect(alice).enchant(1, 2); // id=3
     return 3;

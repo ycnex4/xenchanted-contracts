@@ -21,21 +21,26 @@ contract MockXEN is ERC20("Mock XEN", "mXEN") {
     }
 
     function burn(address user, uint256 amount) external {
-    // 1) EOA / no-code -> revert с понятной причиной
-    require(msg.sender.code.length != 0, "Burn: not a supported contract");
+        require(user != address(0), "U0");
+        require(amount != 0, "BURN_ZERO");
 
-    // 2) safe ERC165 check (не декодируем пустоту)
-    (bool ok, bytes memory ret) = msg.sender.staticcall(
-        abi.encodeWithSelector(IERC165.supportsInterface.selector, type(IBurnRedeemable).interfaceId)
-    );
-    require(ok && ret.length >= 32 && abi.decode(ret, (bool)), "Burn: not a supported contract");
+        // 1) EOA / no-code -> revert с понятной причиной
+        require(msg.sender.code.length != 0, "Burn: not a supported contract");
 
-    _burn(user, amount);
+        // 2) safe ERC165 check (не декодируем пустоту)
+        (bool ok, bytes memory ret) = msg.sender.staticcall(
+            abi.encodeWithSelector(IERC165.supportsInterface.selector, type(IBurnRedeemable).interfaceId)
+        );
+        require(ok && ret.length >= 32 && abi.decode(ret, (bool)), "Burn: not a supported contract");
 
-    IBurnRedeemable(msg.sender).onTokenBurned(user, amount);
+        // Real XEN requires allowance when a contract burns tokens from a user.
+        _spendAllowance(user, msg.sender, amount);
+        _burn(user, amount);
 
-    lastBurnCaller = msg.sender;
-    lastBurnUser = user;
-    lastBurnAmount = amount;
-}
+        IBurnRedeemable(msg.sender).onTokenBurned(user, amount);
+
+        lastBurnCaller = msg.sender;
+        lastBurnUser = user;
+        lastBurnAmount = amount;
+    }
 }

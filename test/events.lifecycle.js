@@ -39,6 +39,7 @@ describe("Events - artifact lifecycle observability", function () {
 
   async function mintL1(env, who = env.alice) {
     await env.xen.faucet(who.address, env.initialXenBurn);
+    await env.xen.connect(who).approve(await env.core.getAddress(), await env.core.currentXenBurnAmount());
     const tx = await env.core.connect(who).mintWithXEN();
     const rc = await tx.wait();
     const log = rc.logs.find((l) => l.fragment && l.fragment.name === "Minted");
@@ -76,6 +77,7 @@ describe("Events - artifact lifecycle observability", function () {
     const { alice, xen, core, initialNominal, initialXenBurn } = env;
 
     await xen.faucet(alice.address, initialXenBurn);
+    await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
     const tx = await core.connect(alice).mintWithXEN();
     const rc = await tx.wait();
 

@@ -42,6 +42,7 @@ describe("xEnchantedNFT Core - basic flow with XEN burn()", function () {
   async function mintL1(env, who = env.alice) {
     const { xen, core } = env;
     await xen.faucet(who.address, ethers.parseEther("1000"));
+    await xen.connect(who).approve(await core.getAddress(), await core.currentXenBurnAmount());
     const tx = await core.connect(who).mintWithXEN();
     const rc = await tx.wait();
     const log = rc.logs.find((l) => l.fragment && l.fragment.name === "Minted");
@@ -75,12 +76,26 @@ describe("xEnchantedNFT Core - basic flow with XEN burn()", function () {
   }
 
 
+  it("mintWithXEN reverts without XEN allowance", async function () {
+    const env = await deploy();
+    const { alice, xen, core } = env;
+
+    await xen.faucet(alice.address, ethers.parseEther("1000"));
+
+    await expect(
+      core.connect(alice).mintWithXEN()
+    ).to.be.revertedWithCustomError(xen, "ERC20InsufficientAllowance");
+  });
+
+
   it("mintWithXEN burns XEN via burn() + callback, and mints L1 NFT", async function () {
     const env = await deploy();
     const { alice, xen, core, initialXenBurn } = env;
 
     await xen.faucet(alice.address, ethers.parseEther("1000"));
     const before = await xen.balanceOf(alice.address);
+
+    await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
 
     const tx = await core.connect(alice).mintWithXEN();
     const rc = await tx.wait();

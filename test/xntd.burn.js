@@ -49,6 +49,7 @@ describe("XNTDToken - protocol burn paths", function () {
 
   async function mintL1(env, who = env.alice) {
     await env.xen.faucet(who.address, env.initialXenBurn);
+    await env.xen.connect(who).approve(await env.core.getAddress(), await env.core.currentXenBurnAmount());
 
     const tx = await env.core.connect(who).mintWithXEN();
     const rc = await tx.wait();

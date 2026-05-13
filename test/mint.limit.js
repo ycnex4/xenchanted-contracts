@@ -50,6 +50,7 @@ describe("xEnchantedNFT - wallet mint limit", function () {
     await xen.faucet(alice.address, ethers.parseEther("100000"));
 
     for (let i = 0; i < MAX; i++) {
+      await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
       await core.connect(alice).mintWithXEN();
     }
 
@@ -64,11 +65,15 @@ describe("xEnchantedNFT - wallet mint limit", function () {
     await xen.faucet(alice.address, ethers.parseEther("100000"));
 
     for (let i = 0; i < MAX; i++) {
+      await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
       await core.connect(alice).mintWithXEN();
     }
 
     await expect(
-      core.connect(alice).mintWithXEN()
+      (async () => {
+        await xen.connect(alice).approve(await core.getAddress(), await core.currentXenBurnAmount());
+        return core.connect(alice).mintWithXEN();
+      })()
     ).to.be.revertedWith("MAX_WALLET");
   });
 

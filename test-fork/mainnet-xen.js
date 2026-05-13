@@ -42,6 +42,11 @@ describe("Mainnet fork - real XEN integration", function () {
   it("Core.mintWithXEN works against the real XEN burn flow", async function () {
     const [deployer, user] = await ethers.getSigners();
 
+    const fee = {
+      maxFeePerGas: ethers.parseUnits("50", "gwei"),
+      maxPriorityFeePerGas: ethers.parseUnits("2", "gwei"),
+    };
+
     const xenWhale = process.env.XEN_WHALE;
     const initialNominal = ethers.parseEther("100");
     const initialXenBurn = ethers.parseEther("100000000");
@@ -53,27 +58,27 @@ describe("Mainnet fork - real XEN integration", function () {
     const CoreTokenURILens = await ethers.getContractFactory("xEnchantedTokenURILens");
     const StakeTokenURILens = await ethers.getContractFactory("xEnchantedStakeTokenURILens");
 
-    const core = await Core.deploy(XEN_MAINNET, initialNominal, initialXenBurn);
+    const core = await Core.deploy(XEN_MAINNET, initialNominal, initialXenBurn, fee);
     await core.waitForDeployment();
 
-    const xntd = await XNTD.deploy(await core.getAddress());
+    const xntd = await XNTD.deploy(await core.getAddress(), fee);
     await xntd.waitForDeployment();
 
-    const stake = await Stake.deploy(await core.getAddress());
+    const stake = await Stake.deploy(await core.getAddress(), fee);
     await stake.waitForDeployment();
 
-    const forge = await Forge.deploy(await core.getAddress(), await xntd.getAddress());
+    const forge = await Forge.deploy(await core.getAddress(), await xntd.getAddress(), fee);
     await forge.waitForDeployment();
 
-    const coreLens = await CoreTokenURILens.deploy(await core.getAddress());
+    const coreLens = await CoreTokenURILens.deploy(await core.getAddress(), fee);
     await coreLens.waitForDeployment();
 
-    const stakeLens = await StakeTokenURILens.deploy(await stake.getAddress());
+    const stakeLens = await StakeTokenURILens.deploy(await stake.getAddress(), fee);
     await stakeLens.waitForDeployment();
 
-    await core.setTokenURILens(await coreLens.getAddress());
-    await stake.setTokenURILens(await stakeLens.getAddress());
-    await core.init(await xntd.getAddress(), await stake.getAddress(), await forge.getAddress());
+    await core.setTokenURILens(await coreLens.getAddress(), fee);
+    await stake.setTokenURILens(await stakeLens.getAddress(), fee);
+    await core.init(await xntd.getAddress(), await stake.getAddress(), await forge.getAddress(), fee);
 
     const xen = await ethers.getContractAt(
       [
@@ -108,17 +113,17 @@ describe("Mainnet fork - real XEN integration", function () {
 
     const whaleSigner = await ethers.getSigner(xenWhale);
 
-    await xen.connect(whaleSigner).transfer(user.address, xenAmount);
+    await xen.connect(whaleSigner).transfer(user.address, xenAmount, fee);
 
     expect(await xen.balanceOf(user.address)).to.be.gte(xenAmount);
 
-    await xen.connect(user).approve(await core.getAddress(), xenAmount);
+    await xen.connect(user).approve(await core.getAddress(), xenAmount, fee);
 
     expect(
       await xen.allowance(user.address, await core.getAddress())
     ).to.be.gte(xenAmount);
 
-    await expect(core.connect(user).mintWithXEN()).to.not.be.reverted;
+    await expect(core.connect(user).mintWithXEN(fee)).to.not.be.reverted;
 
     expect(await core.balanceOf(user.address)).to.equal(1n);
 
