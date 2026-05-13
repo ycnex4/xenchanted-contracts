@@ -96,7 +96,7 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
     mapping(uint256 => uint256) private _ownerTokenIndex;
 
     // EVENTS
-    event Init(address xntd, address staking, address forge);
+    event Init(address indexed xntd, address indexed staking, address indexed forge);
 
     event Minted(
         uint256 indexed id,
