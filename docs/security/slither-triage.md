@@ -79,3 +79,19 @@ Reason: all remaining low-level calls are `staticcall`-based read operations. Th
 Resolution: no code change. The use of `staticcall` is intentional and limited to read-only / metadata / initialization handshake flows.
 
 Status: accepted / documented.
+
+### External call inside loop / batch StakeView construction
+
+Slither reported an external call inside a loop in `xEnchantedStake.getStakeViews(uint256[])`.
+
+The loop builds a `StakeView` for each requested Stake NFT. During `_buildStakeView`, the contract calls `CORE.epochAt(p.startTs)` to derive the stake epoch from the Core contract's epoch rules.
+
+Manual assessment: accepted informational finding.
+
+Reason: the affected function is an `external view` batch-read helper. It does not mutate state, transfer ETH, mint, burn, authorize, or update accounting. The external call is a read-only call to the trusted immutable Core contract and is used to keep epoch calculation sourced from Core rather than duplicating epoch logic in Stake.
+
+The practical limitation is read scalability: very large `ids` arrays may become expensive for RPC simulation or exceed gas limits for on-chain view calls. The intended use is frontend/wallet inventory reads with bounded arrays.
+
+Resolution: no code change. Storing `stakeEpoch` in each stake position would remove the read call but would add storage cost and increase stake transaction cost. The current design intentionally favors computed read-time derivation from Core.
+
+Status: accepted / documented.
