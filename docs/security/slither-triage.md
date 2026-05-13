@@ -57,3 +57,25 @@ Reason: the called functions return broad protocol state tuples, while the previ
 Resolution: no further code change. The only state-changing ignored return value was removed from the Forge burn hook.
 
 Status: accepted / documented.
+
+### Low-level calls / staticcall in read-only flows
+
+Slither reported low-level calls in the following places:
+
+- `xEnchantedNFT._readAddr`
+- `xEnchantedNFTLens.previewRedeem`
+- `xEnchantedNFTLens._tradeInfo`
+- `xEnchantedStakeTokenURILens.tokenURI`
+- `xEnchantedTokenURILens.tokenURI`
+
+Manual assessment: accepted informational finding.
+
+Reason: all remaining low-level calls are `staticcall`-based read operations. They do not transfer ETH, do not mutate state, and are not used as arbitrary execution hooks. The calls are used for controlled read-only behavior:
+
+- `xEnchantedNFT._readAddr` is used during initialization as a deployment wiring handshake. It verifies that the Stake and Forge contracts expose the expected `CORE()` / `XNTD()` addresses before Core burns deployer rights.
+- `xEnchantedNFTLens.previewRedeem` and `xEnchantedNFTLens._tradeInfo` use `staticcall` to check `ownerOf(id)` without bubbling ERC721 reverts for non-existent IDs, allowing the lens to return a safe empty result instead of reverting.
+- Core and Stake tokenURI lenses use `staticcall` for existence checks and normalize non-existent-token failures to the protocol's stable `"NE"` revert reason.
+
+Resolution: no code change. The use of `staticcall` is intentional and limited to read-only / metadata / initialization handshake flows.
+
+Status: accepted / documented.
