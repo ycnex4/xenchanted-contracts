@@ -117,3 +117,23 @@ Some Slither entries under this detector also point to invariant or sentinel che
 Resolution: no code change.
 
 Status: accepted / documented.
+
+### Strict equality / invariant and sentinel checks
+
+Slither reported strict equality checks in `_applyHalving`, `_assertInv`, and `_earlyRedeemNominal`.
+
+Manual assessment: accepted informational finding / false positive for protocol invariants.
+
+Reason: the reported strict equality checks are intentional invariant and sentinel-value checks. They are not used for randomness, exact timestamp matching, winner selection, short-window price logic, or fragile balance equality assumptions.
+
+The checks validate protocol state structure, including:
+
+- zero/non-zero provenance fields for Core versus Forged NFTs;
+- Core L1 versus evolved NFT parent linkage;
+- level-specific rules such as `level == 1`;
+- halving lower-bound protection when repeated division would reduce a value to zero;
+- early redeem nominal protection so a non-zero nominal NFT cannot be reduced to zero by penalty rounding.
+
+Resolution: no code change.
+
+Status: accepted / documented.
