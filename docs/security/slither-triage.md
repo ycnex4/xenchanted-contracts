@@ -181,3 +181,35 @@ Manual assessment: accepted.
 Reason: `stake` is protected by Stake `nonReentrant`. The external call is to the protocol Core contract, not to an arbitrary user-controlled target. Core `burnForStaking` is restricted by `onlyStaking`, protected by Core `nonReentrant`, validates ownership and NFT state, burns the Core/Forged NFT, and returns a snapshot. Stake then records the position before `_safeMint`.
 
 Status: accepted / documented. Additional targeted reentrancy tests around stake mint receiver behavior are recommended before mainnet.
+
+### Missing inheritance suggestions
+
+Slither reported missing-inheritance suggestions for several contracts and local interfaces, including lens contracts, Stake, and XNTDToken.
+
+Manual assessment: accepted informational finding.
+
+Reason: the reported interfaces are used primarily as local call-boundary interfaces for cross-contract reads and protocol hooks, not as required inheritance bases. Adding inheritance only to satisfy the static analyzer would increase coupling between Core, Stake, Forge, Token, and Lens modules without providing a meaningful security benefit.
+
+The contracts already expose the expected functions used by their protocol counterparts, and this behavior is covered by wiring and source-of-truth tests.
+
+Resolution: no code change.
+
+Status: accepted / documented.
+
+### Naming convention
+
+Slither reported naming-convention findings for protocol names, acronyms, immutable contract links, and constant-like public variables/getters.
+
+Manual assessment: accepted informational finding.
+
+Reason: the naming is intentional and reflects protocol terminology and readability:
+
+- `XEN`, `XNTD`, `CORE`, `FORGE`, `STAKING` are protocol acronyms or immutable protocol links;
+- `GENESIS_TS`, `INITIAL_NOMINAL`, `INITIAL_XEN_BURN`, `HALVING_INTERVAL`, and similar names are constant or constant-like protocol parameters;
+- `xEnchantedNFT`, `xEnchantedForge`, `xEnchantedStake`, and lens names follow the project branding and deployed contract naming style.
+
+Changing these names would be cosmetic, would affect ABI/readability expectations, and would not improve protocol safety.
+
+Resolution: no code change.
+
+Status: accepted / documented.
