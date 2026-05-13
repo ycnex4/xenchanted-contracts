@@ -441,7 +441,7 @@ contract xEnchantedStakeTokenURILens {
             "</svg>"
         );
 
-        return abi.encodePacked(a, b, c);
+        return bytes.concat(a, b, c);
     }
 
     /**
@@ -642,6 +642,6 @@ contract xEnchantedStakeTokenURILens {
             "}"
         );
 
-        return abi.encodePacked(a, b, c);
+        return bytes.concat(a, b, c);
     }
 }

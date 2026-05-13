@@ -419,7 +419,7 @@ contract xEnchantedTokenURILens {
             "</svg>"
         );
 
-        return abi.encodePacked(a, b, c);
+        return bytes.concat(a, b, c);
     }
 
     // JSON METADATA RENDERING
@@ -505,6 +505,6 @@ contract xEnchantedTokenURILens {
             "}"
         );
 
-        return abi.encodePacked(a, b, c);
+        return bytes.concat(a, b, c);
     }
 }
