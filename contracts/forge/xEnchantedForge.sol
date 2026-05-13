@@ -67,6 +67,17 @@ contract xEnchantedForge {
     IxEnchantedNFTForgeHook public immutable CORE;
     IXNTDForgeBurner public immutable XNTD;
 
+    // REENTRANCY GUARD
+
+    bool private _entered;
+
+    modifier nonReentrant() {
+        require(!_entered, "REENT");
+        _entered = true;
+        _;
+        _entered = false;
+    }
+
     // PUBLIC CONSTANTS
 
     uint16 public constant MIN_FORGE_MULTIPLIER = 5;
@@ -110,7 +121,7 @@ contract xEnchantedForge {
     /**
      * @dev consumes a current-epoch Core L1 NFT, burns XNTD and mints a Forged NFT
      */
-    function forge(uint256 baseId, uint256 xntdAmount) external returns (uint256 forgedId) {
+    function forge(uint256 baseId, uint256 xntdAmount) external nonReentrant returns (uint256 forgedId) {
         require(xntdAmount != 0, "Z");
 
         uint256 base = CORE.currentBaseNominal();
