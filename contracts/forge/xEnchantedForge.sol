@@ -54,8 +54,7 @@ interface IxEnchantedNFTForgeHook {
     );
 
     function burnL1ForForge(uint256 baseId, address ownerExpected)
-        external
-        returns (NFTData memory snap);
+        external;
 
     function mintForgedFromXNTD(address to, uint256 nom, uint256 xntdTotalBurned)
         external

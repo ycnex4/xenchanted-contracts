@@ -573,11 +573,10 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     onlyForge
     isInit
     nonReentrant
-    returns (NFTData memory snap)
 {
     require(ownerOf(baseId) == ownerExpected, "OF");
 
-    snap = nftData[baseId];
+    NFTData memory snap = nftData[baseId];
     _assertInv(snap);
 
     require(!snap.isForged, "F1");   // Core L1 only
@@ -587,7 +586,6 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     delete nftData[baseId];
 
     emit ForgeBurn(baseId, ownerExpected);
-    return snap;
 }
 
     /**
