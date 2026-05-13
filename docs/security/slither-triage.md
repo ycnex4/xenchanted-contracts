@@ -95,3 +95,25 @@ The practical limitation is read scalability: very large `ids` arrays may become
 Resolution: no code change. Storing `stakeEpoch` in each stake position would remove the read call but would add storage cost and increase stake transaction cost. The current design intentionally favors computed read-time derivation from Core.
 
 Status: accepted / documented.
+
+### Timestamp usage
+
+Slither reported timestamp-related findings across epoch, halving, APR, staking, preview, and invariant-checking code.
+
+Manual assessment: accepted protocol design / informational finding.
+
+Reason: timestamp usage is intentional and limited to protocol timekeeping:
+
+- epoch and halving calculations;
+- base APR decay over long time intervals;
+- stake start and end timestamps;
+- stake maturity checks;
+- preview and StakeView maturity reporting.
+
+The protocol does not use `block.timestamp` for randomness, lottery selection, winner selection, short-window price decisions, or arbitrary privileged outcomes. Time-dependent rules operate over long windows such as 180-day epochs and 30–730 day staking terms. Small block timestamp variance is not expected to create a material advantage or alter protocol accounting in a meaningful way.
+
+Some Slither entries under this detector also point to invariant or sentinel checks, such as zero/non-zero field validation and level/parent checks. These are not timestamp-risk patterns and are treated as static-analysis noise.
+
+Resolution: no code change.
+
+Status: accepted / documented.
