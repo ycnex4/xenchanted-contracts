@@ -50,9 +50,9 @@ Latest confirmed results:
 
 Security documentation:
 
-- docs/production-audit-checkpoint.md
-- docs/security/slither-triage.md
-- docs/security/mainnet-fork-xen.md
+- [Production audit checkpoint](docs/production-audit-checkpoint.md)
+- [Slither triage](docs/security/slither-triage.md)
+- [Real XEN mainnet fork validation](docs/security/mainnet-fork-xen.md)
 
 Important limitation:
 
@@ -70,7 +70,7 @@ Summary:
 
 Findings were either remediated or manually triaged in:
 
-    docs/security/slither-triage.md
+[docs/security/slither-triage.md](docs/security/slither-triage.md)
 
 ## Real XEN Mainnet Fork Test
 
@@ -88,7 +88,7 @@ The fork test confirmed:
 
 Details:
 
-    docs/security/mainnet-fork-xen.md
+[docs/security/mainnet-fork-xen.md](docs/security/mainnet-fork-xen.md)
 
 ## Install
 
