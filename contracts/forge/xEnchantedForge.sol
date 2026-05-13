@@ -203,22 +203,14 @@ contract xEnchantedForge {
         (
             uint8 level,
             bool isForged,
-            uint64 createdAt,
-            uint64 forgedAt,
-            uint256 nominal,
-            uint256 xenBurned,
-            uint256 xntdBurned,
-            uint256 parentId1,
-            uint256 parentId2
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            
         ) = CORE.nftData(baseId);
-
-        createdAt;
-        forgedAt;
-        nominal;
-        xenBurned;
-        xntdBurned;
-        parentId1;
-        parentId2;
 
         if (isForged) {
             return (false, "F1", 0, 0);

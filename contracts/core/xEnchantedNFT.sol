@@ -931,9 +931,8 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     /**
      * @dev callback required by XEN burn integration
      */
-    function onTokenBurned(address user, uint256 amount) external view override {
+    function onTokenBurned(address, uint256) external view override {
     require(msg.sender == address(XEN), "XEN_CB");
-    user; amount;
 }
 
     // ERC165 SUPPORT

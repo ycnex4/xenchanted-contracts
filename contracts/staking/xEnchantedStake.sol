@@ -394,16 +394,14 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         (
             uint8 level,
             bool isForged,
-            uint64 createdAt,
-            uint64 forgedAt,
-            uint256 nominal,
-            uint256 xenBurned,
-            uint256 xntdBurned,
-            uint256 parentId1,
-            uint256 parentId2
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            
         ) = CORE.nftData(id);
-
-        createdAt; forgedAt; nominal; xenBurned; xntdBurned; parentId1; parentId2;
 
         exists_ = true;
         baseAprBps = CORE.baseAprBpsNow();
@@ -514,16 +512,14 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
         (
             uint8 _level,
             bool _isForged,
-            uint64 createdAt,
-            uint64 forgedAt,
+            ,
+            ,
             uint256 _nominal,
-            uint256 xenBurned,
-            uint256 xntdBurned,
-            uint256 parentId1,
-            uint256 parentId2
+            ,
+            ,
+            ,
+            
         ) = CORE.nftData(id);
-
-        createdAt; forgedAt; xenBurned; xntdBurned; parentId1; parentId2;
 
         if (_level <= 1) {
             return (false, "L1_STAKE", _isForged, _level, _nominal, 0, 0, 0, 0, 0, 0, 0);
