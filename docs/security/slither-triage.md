@@ -213,3 +213,19 @@ Changing these names would be cosmetic, would affect ABI/readability expectation
 Resolution: no code change.
 
 Status: accepted / documented.
+
+### Divide before multiply / Core enchant nominal formula
+
+Slither reported divide-before-multiply in `xEnchantedNFT.enchant` and `xEnchantedNFT.previewEnchant`.
+
+Manual assessment: accepted protocol design.
+
+Reason: Core enchant intentionally computes the new Core NFT nominal as the integer average of the two parent nominals multiplied by the enchant multiplier:
+
+`newNominal = floor((nominalA + nominalB) / 2) * ENCHANT_MULTIPLIER`
+
+This behavior is mirrored by `previewEnchant`, covered by tests, and defines the protocol's deterministic rounding rule. Changing the formula to multiply before division would alter protocol economics for parent pairs with odd nominal sums.
+
+Resolution: no code change.
+
+Status: accepted / documented.
