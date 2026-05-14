@@ -57,6 +57,7 @@ Security documentation:
 - [External review follow-ups](docs/security/external-review-followups.md)
 - [Bytecode size check](docs/security/bytecode-size-check.md)
 - [Gas profiling notes](docs/security/gas-profiling-notes.md)
+- [Gas profiling results](docs/security/gas-profiling-results.md)
 
 Economic documentation:
 
@@ -177,7 +178,7 @@ Before any mainnet deployment:
 - run the real XEN mainnet fork test;
 - re-run Slither;
 - review bytecode size;
-- perform gas profiling;
+- perform gas profiling and update measured gas results;
 - revisit open economic modeling questions;
 - perform independent external audit;
 - consider formal verification / expanded invariant testing.
