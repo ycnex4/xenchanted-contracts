@@ -59,6 +59,7 @@ Security documentation:
 - [Gas profiling notes](docs/security/gas-profiling-notes.md)
 - [Gas profiling results](docs/security/gas-profiling-results.md)
 - [Real XEN gas profile](docs/security/real-xen-gas-profile.md)
+- [Mainnet deployment readiness](docs/mainnet-deployment-readiness.md)
 
 Economic documentation:
 
