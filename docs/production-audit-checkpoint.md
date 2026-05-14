@@ -56,6 +56,7 @@ Economic documentation conclusions:
 - L1 staking ban remains the working baseline for both Core L1 and Forged L1 as an economic gate;
 - Forge min/max remains the working baseline: min = currentBaseNominal * 5 and max = currentBaseNominal * 1000;
 - Forge cap is explicitly marked for deeper numerical modeling before mainnet if needed.
+
 Numerical modeling follow-up:
 
 After the previous checkpoint, a dedicated numerical modeling branch was merged:
