@@ -9,6 +9,7 @@ Current focus:
 - Forge min/max bounds by epoch;
 - 100x / 500x / 1000x Forge cap scenarios;
 - whale burn target splitting under different caps;
+- XNTD availability constraints before large Forge activity;
 - how halving naturally tightens absolute Forge caps over time.
 
 Current implemented baseline remains:
@@ -44,6 +45,35 @@ This table shows Forge min/max bounds under different max-cap scenarios.
 | 10 | 0.097656 | 0.488281 | 9.765625 | 48.828125 | 97.65625 |
 | 11 | 0.048828 | 0.244141 | 4.882813 | 24.414063 | 48.828125 |
 | 12 | 0.024414 | 0.12207 | 2.441406 | 12.207031 | 24.414063 |
+
+## XNTD Availability Constraint
+
+A high Forge cap does not mean that high-nominal Forged NFTs can appear immediately.
+
+The user must first obtain XNTD from protocol activity or from the market. In early epochs, the dominant liquid XNTD source is likely Core/Forged NFT redemption rather than staking rewards.
+
+This table estimates how many simple Core L1 redemptions would be needed to create each XNTD target, assuming no secondary market aggregation and no higher-level redeem path.
+
+Important limitation: this table does not account for enchant paths. Higher-level NFT redemption can produce more XNTD per redeem, but requires prior mint/enchant activity and parent NFT burns.
+
+| Target XNTD | Core L1 Redemptions @ Epoch 0 | Core L1 Redemptions @ Epoch 1 | Core L1 Redemptions @ Epoch 3 |
+| ---: | ---: | ---: | ---: |
+| 1,000 | 10 | 20 | 80 |
+| 5,000 | 50 | 100 | 400 |
+| 10,000 | 100 | 200 | 800 |
+| 25,000 | 250 | 500 | 2,000 |
+| 50,000 | 500 | 1,000 | 4,000 |
+| 100,000 | 1,000 | 2,000 | 8,000 |
+| 250,000 | 2,500 | 5,000 | 20,000 |
+| 500,000 | 5,000 | 10,000 | 40,000 |
+| 1,000,000 | 10,000 | 20,000 | 80,000 |
+
+Interpretation:
+
+- In Epoch 0, a 100,000 XNTD Forge requires roughly the liquid supply of 1,000 redeemed Core L1 NFTs if sourced only through simple L1 redemption.
+- In Epoch 3, the same 100,000 XNTD target would require roughly 8,000 simple Core L1 redemptions at the lower base nominal.
+- Therefore, Forge cap should be evaluated together with XNTD availability, not as an isolated maximum.
+- The redemption counts above are simple Core L1 equivalents, not a full model of enchanted NFT production.
 
 ## Per-Act Forge Cap Comparison - Epoch 0
 
@@ -129,6 +159,7 @@ Base nominal: 12.5 XNTD
 - Current implemented baseline remains min = base * 5 and max = base * 1000.
 - A lower max cap increases the number of transactions needed for large burns.
 - A higher max cap strengthens one-act burn capacity but allows more one-act concentration.
-- The key tradeoff is XNTD sink strength vs. Forged NFT nominal distribution.
+- A high cap does not create XNTD supply by itself; XNTD must first be produced through protocol actions or acquired from other participants.
+- The key tradeoff is XNTD sink strength vs. Forged NFT nominal distribution, constrained by actual XNTD availability.
 - Further modeling can add assumptions about user cohorts, XNTD price, stake APR, and epoch timing.
 
