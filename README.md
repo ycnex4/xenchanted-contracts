@@ -58,6 +58,7 @@ Security documentation:
 - [Bytecode size check](docs/security/bytecode-size-check.md)
 - [Gas profiling notes](docs/security/gas-profiling-notes.md)
 - [Gas profiling results](docs/security/gas-profiling-results.md)
+- [Real XEN gas profile](docs/security/real-xen-gas-profile.md)
 
 Economic documentation:
 
@@ -176,6 +177,7 @@ Before any mainnet deployment:
 - verify deployment wiring after deploy;
 - run the full local test suite;
 - run the real XEN mainnet fork test;
+- run the real XEN gas profile if mintWithXEN gas needs to be refreshed;
 - re-run Slither;
 - review bytecode size;
 - perform gas profiling and update measured gas results;
