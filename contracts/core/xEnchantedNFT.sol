@@ -928,10 +928,17 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     // XEN BURN CALLBACK
     /**
      * @dev callback required by XEN burn integration
+     *
+     * Real XEN calls this callback during XEN.burn(user, amount), while
+     * mintWithXEN() is still executing. This callback must remain view-only:
+     * adding state changes here would create a reentrancy-sensitive path.
+     *
+     * The callback only authenticates that it was invoked by the immutable
+     * XEN contract configured at Core deployment.
      */
     function onTokenBurned(address, uint256) external view override {
-    require(msg.sender == address(XEN), "XEN_CB");
-}
+        require(msg.sender == address(XEN), "XEN_CB");
+    }
 
     // ERC165 SUPPORT
     /**

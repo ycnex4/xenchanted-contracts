@@ -53,6 +53,7 @@ Security documentation:
 - [Production audit checkpoint](docs/production-audit-checkpoint.md)
 - [Slither triage](docs/security/slither-triage.md)
 - [Real XEN mainnet fork validation](docs/security/mainnet-fork-xen.md)
+- [External review follow-ups](docs/security/external-review-followups.md)
 
 Important limitation:
 

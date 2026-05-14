@@ -45,6 +45,17 @@ contract XNTDToken is ERC20 {
     mapping(address => uint256) public userBurns;
     mapping(address => uint256) public integratorBurns;
 
+    // REENTRANCY GUARD FOR PUBLIC INTEGRATOR CALLBACK FLOW
+
+    bool private _entered;
+
+    modifier nonReentrant() {
+        require(!_entered, "REENT");
+        _entered = true;
+        _;
+        _entered = false;
+    }
+
     // INTERNAL TYPE TO DESCRIBE XNTD BURN PROVENANCE
 
     enum BurnKind {
@@ -116,8 +127,12 @@ contract XNTDToken is ERC20 {
      * The caller must support the XNTD burn-redeemable interface.
      * The user must approve the caller before this function can spend and burn.
      * After burning, the caller receives an onXNTDBurned callback.
+     *
+     * The callback cannot re-enter XNTD while burn() is executing.
+     * This is intentional: integrator callbacks are notification hooks,
+     * not a place to perform nested XNTD operations.
      */
-    function burn(address user, uint256 amount) external {
+    function burn(address user, uint256 amount) external nonReentrant {
         require(user != address(0), "U0");
         require(amount != 0, "BURN_ZERO");
         require(_supportsBurnRedeemable(msg.sender), "BURNER");
