@@ -11,6 +11,7 @@ These documents are not formal economic guarantees. They record the current impl
 | `early-redeem-penalty-model.md` | Early stake redeem penalty | Keep current 1% flat nominal penalty for now |
 | `l1-forged-staking-policy.md` | Whether L1 Forged NFTs should be stakeable | Keep current L1 staking ban as an economic gate |
 | `forge-cap-impact-model.md` | Forge min/max bounds and cap scenarios | Keep current `base * 5` min and `base * 1000` max for now; revisit after deeper modeling |
+| `numerical-modeling.md` | Preliminary numerical Forge-cap scenario tables | Discussion aid only; no protocol change |
 
 ## Current Baseline
 
@@ -44,5 +45,4 @@ Before changing contract logic, each parameter should be evaluated against:
 
 Do not change the contracts at this stage.
 
-The current economics are documented as the working baseline. Deeper numerical modeling may be performed before mainnet deployment, especially for the Forge cap and long-term distribution behavior.
-
+The current economics are documented as the working baseline. Preliminary numerical modeling is included as a discussion aid for Forge cap scenarios and long-term distribution behavior.

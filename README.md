@@ -66,6 +66,7 @@ Economic documentation:
 - [Early redeem penalty model](docs/economics/early-redeem-penalty-model.md)
 - [L1 Forged staking policy](docs/economics/l1-forged-staking-policy.md)
 - [Forge cap impact model](docs/economics/forge-cap-impact-model.md)
+- [Numerical economics modeling](docs/economics/numerical-modeling.md)
 
 Important limitation:
 
