@@ -10,6 +10,7 @@ Current focus:
 - 100x / 500x / 1000x Forge cap scenarios;
 - whale burn target splitting under different caps;
 - XNTD availability constraints before large Forge activity;
+- enchanted Core redemption paths;
 - how halving naturally tightens absolute Forge caps over time.
 
 Current implemented baseline remains:
@@ -74,6 +75,71 @@ Interpretation:
 - In Epoch 3, the same 100,000 XNTD target would require roughly 8,000 simple Core L1 redemptions at the lower base nominal.
 - Therefore, Forge cap should be evaluated together with XNTD availability, not as an isolated maximum.
 - The redemption counts above are simple Core L1 equivalents, not a full model of enchanted NFT production.
+
+## Enchanted Core Redemption Path - Epoch 0
+
+Base nominal: 100 XNTD
+
+This table shows the idealized same-epoch Core enchant path where same-level Core NFTs with the same nominal are repeatedly enchanted.
+
+It does not include gas costs, market behavior, stake rewards, forged paths, mixed-nominal inputs, or rounding edge cases.
+
+| Core Level | Redeem Nominal | L1 Inputs To Build One NFT | Nominal Per L1 Input |
+| ---: | ---: | ---: | ---: |
+| L1 | 100 XNTD | 1 | 100 XNTD |
+| L2 | 300 XNTD | 2 | 150 XNTD |
+| L3 | 900 XNTD | 4 | 225 XNTD |
+| L4 | 2,700 XNTD | 8 | 337.5 XNTD |
+| L5 | 8,100 XNTD | 16 | 506.25 XNTD |
+| L6 | 24,300 XNTD | 32 | 759.375 XNTD |
+| L7 | 72,900 XNTD | 64 | 1,139.0625 XNTD |
+| L8 | 218,700 XNTD | 128 | 1,708.59375 XNTD |
+| L9 | 656,100 XNTD | 256 | 2,562.890625 XNTD |
+| L10 | 1,968,300 XNTD | 512 | 3,844.335938 XNTD |
+
+## XNTD Target Via Enchanted Core Redemption - Epoch 0
+
+Base nominal: 100 XNTD
+
+This section compares simple L1 redemption with selected enchanted Core redemption paths.
+
+Important: the target tables use ceil logic. They estimate the minimum number of same-level redemptions required to reach at least the target, so the actual XNTD minted may exceed the target.
+
+### Compact Target Table
+
+Format: `redemptions / L1 inputs`.
+
+| Target XNTD | L1 | L3 | L5 | L7 | L10 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 10,000 | 100 / 100 | 12 / 48 | 2 / 32 | 1 / 64 | 1 / 512 |
+| 50,000 | 500 / 500 | 56 / 224 | 7 / 112 | 1 / 64 | 1 / 512 |
+| 100,000 | 1,000 / 1,000 | 112 / 448 | 13 / 208 | 2 / 128 | 1 / 512 |
+| 250,000 | 2,500 / 2,500 | 278 / 1,112 | 31 / 496 | 4 / 256 | 1 / 512 |
+| 1,000,000 | 10,000 / 10,000 | 1,112 / 4,448 | 124 / 1,984 | 14 / 896 | 1 / 512 |
+
+### Detailed Efficiency For 100,000 XNTD Target
+
+This table explains why L1 input counts can decrease and then increase again. Very high-level NFTs may overshoot the target by a large amount.
+
+The final two columns show how many full 100,000 XNTD Forge acts would be possible from the actual minted XNTD in Epoch 0, plus the remaining XNTD after those Forge acts.
+
+| Core Level | Redeem Nominal | Redemptions Needed | L1 Inputs | Actual XNTD Minted | Overshoot | Full 100k Forge Acts | Remainder After Forge |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| L1 | 100 XNTD | 1,000 | 1,000 | 100,000 XNTD | 0% | 1 | 0 XNTD |
+| L3 | 900 XNTD | 112 | 448 | 100,800 XNTD | 0.8% | 1 | 800 XNTD |
+| L5 | 8,100 XNTD | 13 | 208 | 105,300 XNTD | 5.3% | 1 | 5,300 XNTD |
+| L7 | 72,900 XNTD | 2 | 128 | 145,800 XNTD | 45.8% | 1 | 45,800 XNTD |
+| L10 | 1,968,300 XNTD | 1 | 512 | 1,968,300 XNTD | 1,868.3% | 19 | 68,300 XNTD |
+
+Interpretation:
+
+- Higher-level Core redemption can reduce the number of redeem transactions needed to create a large XNTD amount.
+- The reduction is not free: higher levels require prior L1 minting, repeated enchant actions, and parent NFT burns.
+- Input counts are not guaranteed to decrease monotonically for every target because very high-level NFTs may overshoot smaller targets.
+- For a 100,000 XNTD target, L7 can be more input-efficient than L10 because one L10 redemption mints far more XNTD than the target requires.
+- Very high-level Core redemption may overshoot smaller targets, but it becomes increasingly relevant as the target size grows or when the goal is to fund multiple max-size Forge acts.
+- This path can make large Forge burns more realistic over time if users build and redeem evolved Core NFTs.
+- Therefore, XNTD availability should be modeled through both simple L1 redemption and enchanted NFT redemption paths.
 
 ## Per-Act Forge Cap Comparison - Epoch 0
 
@@ -161,5 +227,6 @@ Base nominal: 12.5 XNTD
 - A higher max cap strengthens one-act burn capacity but allows more one-act concentration.
 - A high cap does not create XNTD supply by itself; XNTD must first be produced through protocol actions or acquired from other participants.
 - The key tradeoff is XNTD sink strength vs. Forged NFT nominal distribution, constrained by actual XNTD availability.
-- Further modeling can add assumptions about user cohorts, XNTD price, stake APR, and epoch timing.
+- Enchant paths can reduce the number of redeem transactions needed for large XNTD supply, but require prior mint/enchant activity and parent NFT burns.
+- Further modeling can add assumptions about user cohorts, XNTD price, stake APR, gas cost, and epoch timing.
 
