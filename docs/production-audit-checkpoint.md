@@ -57,6 +57,36 @@ Economic documentation conclusions:
 - Forge min/max remains the working baseline: min = currentBaseNominal * 5 and max = currentBaseNominal * 1000;
 - Forge cap is explicitly marked for deeper numerical modeling before mainnet if needed.
 
+Numerical modeling follow-up:
+
+After the previous checkpoint, a dedicated numerical modeling branch was merged:
+
+- numerical modeling merged in 6948560 Merge branch 'numerical-modeling'.
+
+No contract logic or economic parameters were changed.
+
+Additional modeling files added:
+
+- docs/economics/numerical-modeling.md;
+- scripts/model-economics.js.
+
+Numerical modeling conclusions:
+
+- Forge cap scenarios were compared for 100x, 500x and 1000x;
+- current Forge baseline remains min = currentBaseNominal * 5 and max = currentBaseNominal * 1000;
+- 100x appears too narrow for large XNTD burn demand;
+- 500x remains viable, but there is no strong reason to change from the current 1000x baseline;
+- XNTD availability is a natural constraint: high-nominal Forge cannot happen until liquid XNTD supply exists;
+- halving naturally tightens absolute Forge caps over time;
+- enchanted Core redemption can create larger XNTD chunks, but requires prior L1 minting, repeated enchant actions and parent NFT burns;
+- L7 is more input-efficient than L10 for a precise 100,000 XNTD target in the current model;
+- L10 is better understood as large-scale XNTD supply creation for multiple max-size Forge acts.
+
+Latest modeling check:
+
+- node .\scripts\model-economics.js: passed.
+
+
 
 
 
