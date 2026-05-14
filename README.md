@@ -38,7 +38,7 @@ Main flows:
       Mainnet fork integration tests
 
     docs/
-      Security notes, audit checkpoint, and migration notes
+      Security notes, audit checkpoint, economics notes, and migration notes
 
 ## Current Verification Status
 
@@ -47,6 +47,7 @@ Latest confirmed results:
     Local Hardhat tests: 70 passing
     Mainnet fork real XEN integration test: 2 passing
     Slither high issues: 0
+    Bytecode size check: all production contracts below 24KB
 
 Security documentation:
 
@@ -54,10 +55,19 @@ Security documentation:
 - [Slither triage](docs/security/slither-triage.md)
 - [Real XEN mainnet fork validation](docs/security/mainnet-fork-xen.md)
 - [External review follow-ups](docs/security/external-review-followups.md)
+- [Bytecode size check](docs/security/bytecode-size-check.md)
+- [Gas profiling notes](docs/security/gas-profiling-notes.md)
+
+Economic documentation:
+
+- [Economics notes overview](docs/economics/README.md)
+- [Early redeem penalty model](docs/economics/early-redeem-penalty-model.md)
+- [L1 Forged staking policy](docs/economics/l1-forged-staking-policy.md)
+- [Forge cap impact model](docs/economics/forge-cap-impact-model.md)
 
 Important limitation:
 
-This repository has undergone internal review, static analysis triage, local testing, and mainnet fork integration testing. This is not an independent third-party audit and not formal verification.
+This repository has undergone internal review, static analysis triage, local testing, mainnet fork integration testing, bytecode size checking, and economic rationale documentation. This is not an independent third-party audit, not formal verification, and not a formal economic guarantee.
 
 ## Slither Static Analysis
 
@@ -90,6 +100,37 @@ The fork test confirmed:
 Details:
 
 [docs/security/mainnet-fork-xen.md](docs/security/mainnet-fork-xen.md)
+
+## Bytecode Size Check
+
+All production contracts are currently below the Ethereum 24KB deployed bytecode limit.
+
+Details:
+
+[docs/security/bytecode-size-check.md](docs/security/bytecode-size-check.md)
+
+## Economic Modeling Notes
+
+Economic parameters should not be changed casually.
+
+The current economic documentation records the implemented baseline, alternatives considered, risks, and parameters that may need deeper numerical modeling before mainnet deployment.
+
+Current documented baseline:
+
+- early redeem reward: `0`;
+- early redeem nominal penalty: `1%`;
+- staking requires `level > 1`;
+- Core L1 NFTs are not stakeable;
+- Forged L1 NFTs are not stakeable;
+- Forged staking bonus unlocks only when the Forged NFT is stakeable;
+- Forge min: `currentBaseNominal * 5`;
+- Forge max: `currentBaseNominal * 1000`.
+
+These documents do not change contract behavior. They document the current rationale and open modeling questions.
+
+Details:
+
+[docs/economics/README.md](docs/economics/README.md)
 
 ## Install
 
@@ -135,6 +176,9 @@ Before any mainnet deployment:
 - run the full local test suite;
 - run the real XEN mainnet fork test;
 - re-run Slither;
+- review bytecode size;
+- perform gas profiling;
+- revisit open economic modeling questions;
 - perform independent external audit;
 - consider formal verification / expanded invariant testing.
 
