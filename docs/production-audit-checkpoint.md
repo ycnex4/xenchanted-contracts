@@ -13,6 +13,50 @@ Latest confirmed local test suite: 70 passing.
 Latest confirmed mainnet fork XEN integration test: 2 passing.
 
 Working tree after checkpoint: nothing to commit, working tree clean.
+Current post-review checkpoint update:
+
+Main branch is synced after the following documentation/script-only follow-ups:
+
+- economic modeling notes merged in 05db8e6 Merge branch 'economic-modeling';
+- local gas profiling merged in 0894b98 Merge branch 'gas-profiling';
+- real XEN gas profile merged in 3978dea Merge branch 'real-xen-gas-profile'.
+
+No contract logic or economic parameters were changed in these follow-ups.
+
+Additional documentation and scripts added:
+
+- docs/security/bytecode-size-check.md;
+- docs/security/gas-profiling-notes.md;
+- docs/security/gas-profiling-results.md;
+- docs/security/real-xen-gas-profile.md;
+- docs/economics/README.md;
+- docs/economics/early-redeem-penalty-model.md;
+- docs/economics/l1-forged-staking-policy.md;
+- docs/economics/forge-cap-impact-model.md;
+- scripts/profile-gas.js;
+- scripts/profile-real-xen-gas.js.
+
+Latest confirmed checks:
+
+- local Hardhat tests: 70 passing;
+- real XEN mainnet fork test: 2 passing;
+- local gas profile with L10 confirmation: passed;
+- real XEN mainnet fork gas profile: passed.
+
+Gas profiling conclusions:
+
+- flat gas scaling by NFT level and nominal magnitude was confirmed on local Hardhat measurements;
+- no measured state-changing user flow scales with parent history, level depth, full collection size, or nominal magnitude;
+- real XEN approve(Core) measured 46,329 gas on mainnet fork;
+- Core mintWithXEN() against real Ethereum XEN measured 240,502 gas on mainnet fork.
+
+Economic documentation conclusions:
+
+- current early redeem penalty remains the working baseline: reward = 0 and nominal penalty = 1%;
+- L1 staking ban remains the working baseline for both Core L1 and Forged L1 as an economic gate;
+- Forge min/max remains the working baseline: min = currentBaseNominal * 5 and max = currentBaseNominal * 1000;
+- Forge cap is explicitly marked for deeper numerical modeling before mainnet if needed.
+
 
 
 
@@ -252,7 +296,7 @@ Forge requires:
 
 ordinary Core L1.
 
-current epoch L1 logic enforced by Core.
+Core L1 sacrifice is required, but it is not restricted to the current epoch. Forge min/max bounds are calculated from the current epoch base nominal.
 
 XNTD burn.
 
@@ -468,7 +512,7 @@ xntdBurned accumulates from Forged parents.
 
 
 
-This means high-level NFTs created from artifacts across different epochs preserve their real historical burn footprint.
+This means high-level NFTs created from Core/Forged NFTs across different epochs preserve their real historical burn footprint.
 
 
 
@@ -798,7 +842,6 @@ Value is created by user action,
 
 transformed through immutable protocol rules,
 
-represented by artifacts,
+represented by protocol NFTs and stake positions,
 
 and never distributed from an allocation pool.
-
