@@ -113,6 +113,34 @@ Gas considerations:
 - Batch lens helpers may scale with input array length and should remain frontend/read-only helpers.
 - TokenURI lenses are bytecode-heavy but still below the 24KB limit.
 
+## Level / Nominal Scaling Expectation
+
+State-changing protocol flows are expected to be mostly flat with respect to NFT level and nominal magnitude.
+
+Rationale:
+
+- NFT level is stored as a fixed-size field;
+- nominal is stored as a fixed-size integer;
+- arithmetic cost does not depend on numeric magnitude;
+- core flows operate on fixed-size storage records;
+- enchant uses exactly two token IDs and does not traverse parent history;
+- stake redeem uses one stake position and does not traverse historical levels;
+- forge uses one Core L1 sacrifice and one XNTD burn amount.
+
+High-level and high-nominal scenarios should still be measured to confirm this expectation.
+
+Recommended confirmation scenarios:
+
+- L2 vs L10+ enchant;
+- normal nominal vs 10K+ nominal enchant;
+- L2 vs L10+ stake start;
+- L2 vs L10+ stake redeem / Phoenix mint;
+- normal nominal vs 10K+ nominal Forge where applicable.
+
+Exception:
+
+`_safeMint` to a contract receiver may depend on the receiver's `onERC721Received` implementation. This is external receiver behavior, not protocol-internal gas growth.
+
 ## Measurements Still Needed
 
 Before mainnet deployment, record actual gas usage for:
