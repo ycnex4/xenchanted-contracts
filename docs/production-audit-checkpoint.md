@@ -86,6 +86,47 @@ Latest modeling check:
 
 - node .\scripts\model-economics.js: passed.
 
+Mainnet deployment readiness follow-up:
+
+After the numerical modeling checkpoint, a dedicated mainnet deployment readiness branch was merged:
+
+- mainnet deployment readiness merged in 464d4ba Merge branch 'mainnet-deploy-readiness'.
+
+No contract logic or economic parameters were changed.
+
+Actual Ethereum mainnet deployment was not executed.
+
+Additional deployment-readiness files added:
+
+- scripts/deploy-mainnet.js;
+- scripts/check-mainnet.js;
+- docs/mainnet-deployment-readiness.md.
+
+Configuration update:
+
+- mainnet network added to hardhat.config.js using MAINNET_RPC_URL and PRIVATE_KEY from environment variables.
+
+Mainnet deployment readiness conclusions:
+
+- deploy-mainnet.js does not deploy MockXEN;
+- deploy-mainnet.js uses the real Ethereum XEN address: 0x06450dEe7FD2Fb8E39061434BAbCFC05599a6Fb8;
+- deploy-mainnet.js requires MAINNET_DEPLOY_CONFIRM=I_UNDERSTAND_THIS_DEPLOYS_TO_MAINNET;
+- deploy-mainnet.js refuses to run unless chainId == 1;
+- check-mainnet.js refuses to run unless chainId == 1;
+- check-mainnet.js verifies Core.XEN == real Ethereum XEN;
+- check-mainnet.js verifies Core/XNTD/Stake/Forge/Lens wiring;
+- check-mainnet.js verifies DEPLOYER == address(0) where expected;
+- check-mainnet.js verifies XNTD.forgeBound == true;
+- check-mainnet.js verifies Core.initialized == true;
+- scripts do not print private keys, RPC URLs, API keys or secrets.
+
+Latest mainnet-readiness safety checks:
+
+- npx hardhat run .\scripts\deploy-mainnet.js without MAINNET_DEPLOY_CONFIRM: correctly refused;
+- npx hardhat run .\scripts\check-mainnet.js on local chainId 31337: correctly refused;
+- npx hardhat compile: passed / Nothing to compile.
+
+
 
 
 
