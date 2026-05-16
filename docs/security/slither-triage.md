@@ -1,4 +1,4 @@
-# xEnchanted Crypto — Slither Static Analysis Triage
+# xEnchanted Crypto - Slither Static Analysis Triage
 
 Status: Work in progress  
 Tool: Slither 0.11.5  
