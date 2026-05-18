@@ -61,6 +61,14 @@ async function main() {
   const forge = await Forge.deploy(await core.getAddress(), await xntd.getAddress());
   await forge.waitForDeployment();
 
+  const Market = await ethers.getContractFactory("XenchantedMarket");
+  const market = await Market.deploy(await core.getAddress());
+  await market.waitForDeployment();
+  const marketDeployTx = market.deploymentTransaction();
+  if (!marketDeployTx) throw new Error("Market deployment transaction not found");
+  const marketDeployRc = await marketDeployTx.wait();
+  push("Market deploy", marketDeployRc.gasUsed);
+
   const TokenURILens = await ethers.getContractFactory("xEnchantedTokenURILens");
   const tokenUriLens = await TokenURILens.deploy(await core.getAddress());
   await tokenUriLens.waitForDeployment();
@@ -77,7 +85,7 @@ async function main() {
   console.log("High level target:", HIGH_LEVEL);
   console.log("Initial nominal:", ethers.formatEther(INITIAL_NOMINAL), "XNTD");
   console.log("Initial XEN burn:", ethers.formatEther(INITIAL_XEN_BURN), "MockXEN");
-  console.log("Setup transactions are not included in the measured rows.\n");
+  console.log("Setup transactions are not included in the measured rows unless explicitly listed.\n");
 
   // Large local MockXEN balances and allowance for setup flows.
   await (await xen.faucet(alice.address, ethers.parseEther("1000000000"))).wait();
@@ -145,6 +153,24 @@ async function main() {
     await measure(label, stake.connect(alice).redeem(tokenId));
   }
 
+  async function marketListMeasured(label, tokenId, priceWei, seller = alice) {
+    await (await core.connect(seller).approve(await market.getAddress(), tokenId)).wait();
+    const rc = await measure(label, market.connect(seller).list(tokenId, priceWei));
+    return eventArg(rc, "Listed", "listingId");
+  }
+
+  async function marketCancelMeasured(label, listingId, seller = alice) {
+    await measure(label, market.connect(seller).cancel(listingId));
+  }
+
+  async function marketBuyMeasured(label, listingId, priceWei, buyer = bob) {
+    await measure(label, market.connect(buyer).buy(listingId, { value: priceWei }));
+  }
+
+  async function marketWithdrawMeasured(label, seller = alice) {
+    await measure(label, market.connect(seller).withdrawProceeds());
+  }
+
   // -----------------------------
   // 1) mintWithXEN baseline
   // -----------------------------
@@ -201,7 +227,32 @@ async function main() {
   // -----------------------------
   const forgedA = await forgeUnmeasured(minForge);
   const forgedB = await forgeUnmeasured(minForge);
-  await enchantMeasured("Enchant Forged L1 + L1 -> L2", forgedA, forgedB, alice);
+  const forgedL2 = await enchantMeasured("Enchant Forged L1 + L1 -> L2", forgedA, forgedB, alice);
+
+  // -----------------------------
+  // 7) market escrow flows
+  // -----------------------------
+  const marketPrice = ethers.parseEther("0.25");
+
+  const marketCancelToken = await mintL1(alice);
+  const cancelListingId = await marketListMeasured("Market list Core L1", marketCancelToken, marketPrice, alice);
+  await marketCancelMeasured("Market cancel Core L1 listing", cancelListingId, alice);
+
+  const marketBuyToken = await mintL1(alice);
+  const buyListingId = await marketListMeasured("Market list Core L1 for buy", marketBuyToken, marketPrice, alice);
+  await marketBuyMeasured("Market buy Core L1", buyListingId, marketPrice, bob);
+  await marketWithdrawMeasured("Market withdraw proceeds", alice);
+
+  const highListingId = await marketListMeasured(
+    `Market list Core L${HIGH_LEVEL + 1}`,
+    highCore,
+    marketPrice,
+    alice
+  );
+  await marketCancelMeasured(`Market cancel Core L${HIGH_LEVEL + 1} listing`, highListingId, alice);
+
+  const forgedListingId = await marketListMeasured("Market list Forged L2", forgedL2, marketPrice, alice);
+  await marketCancelMeasured("Market cancel Forged L2 listing", forgedListingId, alice);
 
   // -----------------------------
   // Summary
@@ -215,7 +266,9 @@ async function main() {
 
   console.log("\nNotes:");
   console.log("- Setup transactions are excluded unless explicitly listed as measured rows.");
+  console.log("- Market deploy is included because Market is a new production contract in v1.");
   console.log("- High-level scenarios are confirmation cases for flat level/nominal gas behavior.");
+  console.log("- Market list/cancel/buy/withdraw use fixed-size storage paths.");
   console.log("- _safeMint gas can vary for contract receivers via onERC721Received; this script uses EOAs.");
 }
 
