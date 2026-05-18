@@ -75,7 +75,18 @@ async function main() {
   console.log("Forge deployed:", forgeAddr);
 
   // -----------------------------
-  // 6) Deploy Lens contracts
+  // 6) Deploy Market
+  // -----------------------------
+  // Market is independent from Core init/wiring.
+  // It only stores the immutable Core ERC721 address.
+  const Market = await ethers.getContractFactory("XenchantedMarket");
+  const market = await Market.deploy(coreAddr);
+  await market.waitForDeployment();
+  const marketAddr = await market.getAddress();
+  console.log("Market deployed:", marketAddr);
+
+  // -----------------------------
+  // 7) Deploy Lens contracts
   // -----------------------------
   const NFTLens = await ethers.getContractFactory("xEnchantedNFTLens");
   const nftLens = await NFTLens.deploy(coreAddr, stakeAddr);
@@ -96,7 +107,7 @@ async function main() {
   console.log("xEnchantedStakeTokenURILens deployed:", stakeTokenUriLensAddr);
 
   // -----------------------------
-  // 7) Wire URI lens contracts
+  // 8) Wire URI lens contracts
   // -----------------------------
   console.log("Setting Core tokenURI lens...");
   const txSetCoreUriLens = await core.setTokenURILens(tokenUriLensAddr);
@@ -109,7 +120,7 @@ async function main() {
   console.log("Stake tokenURI lens set");
 
   // -----------------------------
-  // 8) Init Core
+  // 9) Init Core
   // -----------------------------
   console.log("Initializing Core...");
   const txInit = await core.init(xntdAddr, stakeAddr, forgeAddr);
@@ -125,6 +136,7 @@ async function main() {
   console.log("XNTD:                          ", xntdAddr);
   console.log("Stake:                         ", stakeAddr);
   console.log("Forge:                         ", forgeAddr);
+  console.log("Market:                        ", marketAddr);
   console.log("xEnchantedNFTLens:             ", nftLensAddr);
   console.log("xEnchantedTokenURILens:        ", tokenUriLensAddr);
   console.log("xEnchantedStakeTokenURILens:   ", stakeTokenUriLensAddr);
@@ -132,6 +144,11 @@ async function main() {
   console.log("\n=== VERIFIED GENESIS CONFIG ===");
   console.log("Initial nominal:", ethers.formatEther(await core.INITIAL_NOMINAL()), "XNTD");
   console.log("Initial XEN burn:", ethers.formatEther(await core.INITIAL_XEN_BURN()), "XEN");
+
+  console.log("\n=== MARKET CONFIG ===");
+  console.log("Market.CORE:", await market.CORE());
+  console.log("Market.MAX_PAGE_SIZE:", (await market.MAX_PAGE_SIZE()).toString());
+  console.log("Market.activeListingCount:", (await market.activeListingCount()).toString());
 }
 
 main().catch((error) => {

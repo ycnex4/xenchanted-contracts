@@ -97,7 +97,18 @@ async function main() {
   console.log("Forge deployed:", forgeAddr);
 
   // -----------------------------
-  // 5) Deploy Lens contracts
+  // 5) Deploy Market
+  // -----------------------------
+  // Market is independent from Core init/wiring.
+  // It only stores the immutable Core ERC721 address.
+  const Market = await ethers.getContractFactory("XenchantedMarket");
+  const market = await Market.deploy(coreAddr);
+  await market.waitForDeployment();
+  const marketAddr = await market.getAddress();
+  console.log("Market deployed:", marketAddr);
+
+  // -----------------------------
+  // 6) Deploy Lens contracts
   // -----------------------------
   const NFTLens = await ethers.getContractFactory("xEnchantedNFTLens");
   const nftLens = await NFTLens.deploy(coreAddr, stakeAddr);
@@ -118,7 +129,7 @@ async function main() {
   console.log("xEnchantedStakeTokenURILens deployed:", stakeTokenUriLensAddr);
 
   // -----------------------------
-  // 6) Wire URI lens contracts
+  // 7) Wire URI lens contracts
   // -----------------------------
   console.log("Setting Core tokenURI lens...");
   await (await core.setTokenURILens(tokenUriLensAddr)).wait();
@@ -129,7 +140,7 @@ async function main() {
   console.log("Stake tokenURI lens set");
 
   // -----------------------------
-  // 7) Init Core
+  // 8) Init Core
   // -----------------------------
   console.log("Initializing Core...");
   await (await core.init(xntdAddr, stakeAddr, forgeAddr)).wait();
@@ -144,6 +155,7 @@ async function main() {
   console.log("XNTD:", xntdAddr);
   console.log("Stake:", stakeAddr);
   console.log("Forge:", forgeAddr);
+  console.log("Market:", marketAddr);
   console.log("xEnchantedNFTLens:", nftLensAddr);
   console.log("xEnchantedTokenURILens:", tokenUriLensAddr);
   console.log("xEnchantedStakeTokenURILens:", stakeTokenUriLensAddr);
@@ -153,6 +165,7 @@ async function main() {
   console.log(`XNTD_ADDRESS=${xntdAddr}`);
   console.log(`STAKE_ADDRESS=${stakeAddr}`);
   console.log(`FORGE_ADDRESS=${forgeAddr}`);
+  console.log(`MARKET_ADDRESS=${marketAddr}`);
   console.log(`NFT_LENS_ADDRESS=${nftLensAddr}`);
   console.log(`TOKEN_URI_LENS_ADDRESS=${tokenUriLensAddr}`);
   console.log(`STAKE_TOKEN_URI_LENS_ADDRESS=${stakeTokenUriLensAddr}`);
@@ -163,6 +176,12 @@ async function main() {
   console.log("Current epoch:", (await core.currentEpoch()).toString());
   console.log("Current base nominal:", ethers.formatEther(await core.currentBaseNominal()), "XNTD");
   console.log("Current XEN burn amount:", ethers.formatEther(await core.currentXenBurnAmount()), "XEN");
+
+  console.log("\n=== MARKET CONFIG ===");
+  console.log("Market.CORE:", await market.CORE());
+  console.log("Market.MAX_PAGE_SIZE:", (await market.MAX_PAGE_SIZE()).toString());
+  console.log("Market.activeListingCount:", (await market.activeListingCount()).toString());
+  console.log("Market.nextListingId:", (await market.nextListingId()).toString());
 }
 
 main().catch((error) => {

@@ -9,16 +9,25 @@ const ADDR = {
   XNTD: process.env.XNTD_ADDRESS || "",
   Stake: process.env.STAKE_ADDRESS || "",
   Forge: process.env.FORGE_ADDRESS || "",
+  Market: process.env.MARKET_ADDRESS || "",
   NFTLens: process.env.NFT_LENS_ADDRESS || "",
   TokenURILens: process.env.TOKEN_URI_LENS_ADDRESS || "",
   StakeTokenURILens: process.env.STAKE_TOKEN_URI_LENS_ADDRESS || "",
 };
 
 function envNameFor(name) {
-  if (name === "NFTLens") return "NFT_LENS_ADDRESS";
-  if (name === "TokenURILens") return "TOKEN_URI_LENS_ADDRESS";
-  if (name === "StakeTokenURILens") return "STAKE_TOKEN_URI_LENS_ADDRESS";
-  return `${name.toUpperCase()}_ADDRESS`;
+  const map = {
+    Core: "CORE_ADDRESS",
+    XNTD: "XNTD_ADDRESS",
+    Stake: "STAKE_ADDRESS",
+    Forge: "FORGE_ADDRESS",
+    Market: "MARKET_ADDRESS",
+    NFTLens: "NFT_LENS_ADDRESS",
+    TokenURILens: "TOKEN_URI_LENS_ADDRESS",
+    StakeTokenURILens: "STAKE_TOKEN_URI_LENS_ADDRESS",
+  };
+
+  return map[name] || `${name.toUpperCase()}_ADDRESS`;
 }
 
 function requireAddress(name, value) {
@@ -53,6 +62,14 @@ function assertNumberEq(label, actual, expected) {
   }
 
   console.log(`OK ${label}: ${actual}`);
+}
+
+function assertBigIntEq(label, actual, expected) {
+  if (actual !== expected) {
+    throw new Error(`${label} mismatch\n  actual:   ${actual}\n  expected: ${expected}`);
+  }
+
+  console.log(`OK ${label}: ${actual.toString()}`);
 }
 
 async function main() {
@@ -101,6 +118,7 @@ async function main() {
   const XNTD = await ethers.getContractFactory("XNTDToken");
   const Stake = await ethers.getContractFactory("xEnchantedStake");
   const Forge = await ethers.getContractFactory("xEnchantedForge");
+  const Market = await ethers.getContractFactory("XenchantedMarket");
   const NFTLens = await ethers.getContractFactory("xEnchantedNFTLens");
   const TokenURILens = await ethers.getContractFactory("xEnchantedTokenURILens");
   const StakeTokenURILens = await ethers.getContractFactory("xEnchantedStakeTokenURILens");
@@ -109,6 +127,7 @@ async function main() {
   const xntd = XNTD.attach(ADDR.XNTD);
   const stake = Stake.attach(ADDR.Stake);
   const forge = Forge.attach(ADDR.Forge);
+  const market = Market.attach(ADDR.Market);
   const nftLens = NFTLens.attach(ADDR.NFTLens);
   const tokenUriLens = TokenURILens.attach(ADDR.TokenURILens);
   const stakeTokenUriLens = StakeTokenURILens.attach(ADDR.StakeTokenURILens);
@@ -135,6 +154,12 @@ async function main() {
   console.log("\n=== FORGE WIRING ===");
   assertEq("Forge.CORE", await forge.CORE(), ADDR.Core);
   assertEq("Forge.XNTD", await forge.XNTD(), ADDR.XNTD);
+
+  console.log("\n=== MARKET WIRING ===");
+  assertEq("Market.CORE", await market.CORE(), ADDR.Core);
+  assertBigIntEq("Market.MAX_PAGE_SIZE", await market.MAX_PAGE_SIZE(), 100n);
+  assertBigIntEq("Market.activeListingCount", await market.activeListingCount(), 0n);
+  assertBigIntEq("Market.nextListingId", await market.nextListingId(), 1n);
 
   console.log("\n=== LENS WIRING ===");
   assertEq("NFTLens.CORE", await nftLens.CORE(), ADDR.Core);
