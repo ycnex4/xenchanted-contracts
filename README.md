@@ -19,6 +19,7 @@ Main flows:
 - Enchant: two same-level NFTs are burned to create a higher-level NFT.
 - Forge: user burns XNTD and sacrifices a Core L1 NFT to create a Forged NFT.
 - Stake: user burns a Core/Forged NFT into a Stake NFT position; on redeem, the original NFT is recreated and rewards are handled according to maturity rules.
+- Market: users can list and buy Core/Forged NFTs through an ETH-only escrow secondary market.
 - Redeem: eligible NFTs can be burned to mint XNTD according to protocol rules.
 
 ## Repository Structure
@@ -29,6 +30,7 @@ Main flows:
       staking/    Stake NFT lifecycle contract
       tokens/     XNTD token contract
       lens/       Read-only protocol and tokenURI lenses
+      market/     ETH-only escrow secondary market for Core/Forged NFTs
       mocks/      Test mocks
 
     test/
@@ -44,7 +46,7 @@ Main flows:
 
 Latest confirmed results:
 
-    Local Hardhat tests: 70 passing
+    Local Hardhat tests: 102 passing
     Mainnet fork real XEN integration test: 2 passing
     Slither high issues: 0
     Bytecode size check: all production contracts below 24KB
@@ -60,6 +62,7 @@ Security documentation:
 - [Gas profiling results](docs/security/gas-profiling-results.md)
 - [Real XEN gas profile](docs/security/real-xen-gas-profile.md)
 - [Mainnet deployment readiness](docs/mainnet-deployment-readiness.md)
+- [Market v1 design notes](docs/market-v1.md)
 
 Economic documentation:
 
@@ -146,7 +149,7 @@ Details:
 
 Expected current result:
 
-    70 passing
+    102 passing
 
 ## Run Real XEN Mainnet Fork Test
 
