@@ -6,12 +6,41 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
+/**
+ * XenchantedMarket is the ETH-only secondary market for xEnchanted Core ERC721 NFTs.
+ *
+ * Market v1 supports escrow-based listings for Core NFT and Forged NFT because both
+ * live in the same Core ERC721 contract. Stake NFTs are intentionally not supported:
+ * they represent temporary protocol positions, not final market assets.
+ *
+ * The market has no admin, no fee, no pause, no upgrade path and no rescue functions.
+ * Listed NFTs are held in escrow by this contract, while seller proceeds are stored
+ * as pull payments and withdrawn by sellers after sale.
+ *
+ * Direct safeTransferFrom transfers are rejected by the manual ERC721 receiver guard.
+ * Unsafe ERC721 transferFrom can bypass ERC721 receiver checks by design of ERC721;
+ * such transfers are treated as documented technical user error and are not rescued
+ * by this immutable no-admin market.
+ *
+ * Built by Algorithmic Mining Lab, an open community focused on
+ * first-principles crypto and NFT-based algorithmic mining models.
+ *
+ * Author: Sergey Stepanenko.
+ */
 contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
+    // IMMUTABLE PROTOCOL LINK
+
     IERC721 public immutable CORE;
+
+    // PUBLIC CONSTANTS
 
     uint256 public constant MAX_PAGE_SIZE = 100;
 
+    // PUBLIC LISTING STATE
+
     uint256 public nextListingId = 1;
+
+    // INTERNAL TYPES
 
     struct Listing {
         address seller;
@@ -28,18 +57,33 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
         bool active;
     }
 
+    // LISTING STORAGE
+    // activeListingIdByTokenId[tokenId] == 0 means the token has no active listing.
+
     mapping(uint256 => Listing) public listings;
     mapping(uint256 => uint256) public activeListingIdByTokenId;
+
+    // ACTIVE LISTING INDEX FOR FRONTEND PAGINATION
+    // activeIndexPlusOne uses 1-based indexes so 0 can mean "not active".
 
     uint256[] private _activeListingIds;
     mapping(uint256 => uint256) private _activeIndexPlusOne;
 
+    // PULL-PAYMENT ACCOUNTING
+    // ETH is credited to sellers on buy() and withdrawn later through withdrawProceeds().
+    // address(this).balance may be greater than totalProceeds only because of forced ETH.
+
     mapping(address => uint256) public proceeds;
     uint256 public totalProceeds;
+
+    // ERC721 RECEIVER GUARD
+    // These fields are set only during list() to accept exactly one expected Core NFT.
 
     bool private _listingTransfer;
     address private _expectedSeller;
     uint256 private _expectedTokenId;
+
+    // EVENTS
 
     event Listed(
         uint256 indexed listingId,
@@ -64,6 +108,8 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
 
     event ProceedsWithdrawn(address indexed seller, uint256 amount);
 
+    // ERRORS
+
     error ZeroAddress();
     error NotContract();
     error NotERC721();
@@ -82,6 +128,8 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
     error UnexpectedSeller();
     error UnexpectedToken();
 
+    // CONSTRUCTOR
+
     constructor(address core_) {
         if (core_ == address(0)) revert ZeroAddress();
         if (core_.code.length == 0) revert NotContract();
@@ -92,6 +140,15 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
         CORE = IERC721(core_);
     }
 
+    // PUBLIC STATE-CHANGING METHODS
+
+    /**
+     * @dev Lists a Core/Forged NFT by moving it into market escrow.
+     *
+     * The receiver guard is opened only for this exact seller and tokenId.
+     * The listing is created after the escrow transfer succeeds; if any later
+     * operation reverts, the whole transaction reverts including the NFT transfer.
+     */
     function list(uint256 tokenId, uint256 priceWei) external nonReentrant {
         if (priceWei == 0) revert ZeroPrice();
         if (activeListingIdByTokenId[tokenId] != 0) revert AlreadyListed();
@@ -122,6 +179,9 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
         _expectedTokenId = 0;
     }
 
+    /**
+     * @dev Cancels an active listing and returns the NFT from escrow to the seller.
+     */
     function cancel(uint256 listingId) external nonReentrant {
         Listing storage listing = listings[listingId];
 
@@ -140,6 +200,13 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
         emit Cancelled(listingId, seller, tokenId);
     }
 
+    /**
+     * @dev Buys an active listing for the exact listed ETH price.
+     *
+     * Proceeds are credited to the seller instead of being pushed during buy().
+     * If the buyer cannot receive the ERC721 token, the transaction reverts and
+     * the listing remains active because all state changes are rolled back.
+     */
     function buy(uint256 listingId) external payable nonReentrant {
         Listing storage listing = listings[listingId];
 
@@ -163,6 +230,12 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
         emit Sold(listingId, seller, msg.sender, tokenId, priceWei);
     }
 
+    /**
+     * @dev Withdraws accumulated ETH sale proceeds for msg.sender.
+     *
+     * State is updated before the ETH call. If the ETH call fails, the whole
+     * transaction reverts and the seller's proceeds are restored by EVM rollback.
+     */
     function withdrawProceeds() external nonReentrant {
         uint256 amount = proceeds[msg.sender];
         if (amount == 0) revert NoFunds();
@@ -175,6 +248,8 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
 
         emit ProceedsWithdrawn(msg.sender, amount);
     }
+
+    // PUBLIC VIEW METHODS
 
     function activeListingCount() external view returns (uint256) {
         return _activeListingIds.length;
@@ -256,6 +331,15 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
         return _listingView(listingId);
     }
 
+    // ERC721 RECEIVER
+
+    /**
+     * @dev Accepts only the expected Core NFT during list().
+     *
+     * This intentionally rejects direct safeTransferFrom transfers and all non-Core
+     * ERC721 collections. The contract does not use ERC721Holder because a generic
+     * holder would accept unsupported NFTs into an immutable no-rescue escrow.
+     */
     function onERC721Received(
         address,
         address from,
@@ -270,6 +354,8 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
         return IERC721Receiver.onERC721Received.selector;
     }
 
+    // ETH RECEIVE GUARDS
+
     receive() external payable {
         revert DirectTransferRejected();
     }
@@ -277,6 +363,8 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
     fallback() external payable {
         revert DirectTransferRejected();
     }
+
+    // INTERNAL VIEW HELPERS
 
     function _listingView(
         uint256 listingId
@@ -292,6 +380,8 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
                 active: listing.active
             });
     }
+
+    // INTERNAL ACTIVE INDEX HELPERS
 
     function _addActiveListing(uint256 listingId) private {
         _activeListingIds.push(listingId);
