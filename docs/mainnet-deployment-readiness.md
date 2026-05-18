@@ -43,6 +43,7 @@ Purpose:
 - deploy XNTD;
 - deploy Stake;
 - deploy Forge;
+- deploy Market;
 - deploy read-only Lens contracts;
 - set Core tokenURI lens;
 - set Stake tokenURI lens;
@@ -62,7 +63,7 @@ Purpose:
 
 - verify deployed contract wiring on Ethereum mainnet;
 - verify Core is bound to the real XEN address;
-- verify Core/XNTD/Stake/Forge/Lens references;
+- verify Core/XNTD/Stake/Forge/Market/Lens references;
 - verify deployer rights are burned where expected;
 - print protocol parameters for public review.
 
@@ -83,6 +84,10 @@ Checks include:
 - XNTD.forgeBound == true;
 - Forge.CORE == Core;
 - Forge.XNTD == XNTD;
+- Market.CORE == Core;
+- Market.MAX_PAGE_SIZE == 100;
+- Market.activeListingCount == 0;
+- Market.nextListingId == 1;
 - Lens source addresses.
 
 ## Mainnet Deployment Command Shape
@@ -108,6 +113,7 @@ The check script requires:
 - XNTD_ADDRESS;
 - STAKE_ADDRESS;
 - FORGE_ADDRESS;
+- MARKET_ADDRESS;
 - NFT_LENS_ADDRESS;
 - TOKEN_URI_LENS_ADDRESS;
 - STAKE_TOKEN_URI_LENS_ADDRESS.
@@ -124,6 +130,7 @@ Before mainnet deployment:
 - run real XEN gas profile;
 - review bytecode size;
 - review deployment scripts;
+- review Market v1 design and gas profile;
 - verify Hardhat network configuration uses Ethereum mainnet;
 - verify deployer wallet and ETH balance;
 - verify no MockXEN path is used;
@@ -140,6 +147,7 @@ After deployment:
 - run frontend build;
 - verify Mint L1 allowance flow against real XEN;
 - verify read-only Lens calls;
+- verify Market read-only calls;
 - verify tokenURI rendering;
 - verify no admin/deployer rights remain where they should be burned.
 
