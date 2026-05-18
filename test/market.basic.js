@@ -285,6 +285,42 @@ describe("XenchantedMarket - basic tests", function () {
     expect(await market.totalProceeds()).to.equal(0n);
   });
 
+  it("withdrawProceedsFor() lets a third party withdraw proceeds to seller", async function () {
+    const env = await deploy();
+    const { alice, bob, carol, market } = env;
+
+    const { listingId, priceWei } = await listOne(env, alice);
+
+    await market.connect(bob).buy(listingId, { value: priceWei });
+
+    const sellerBefore = await ethers.provider.getBalance(alice.address);
+    const callerBefore = await ethers.provider.getBalance(carol.address);
+
+    await expect(
+      market.connect(carol).withdrawProceedsFor(alice.address)
+    )
+      .to.emit(market, "ProceedsWithdrawn")
+      .withArgs(alice.address, priceWei);
+
+    const sellerAfter = await ethers.provider.getBalance(alice.address);
+    const callerAfter = await ethers.provider.getBalance(carol.address);
+
+    expect(sellerAfter - sellerBefore).to.equal(priceWei);
+    expect(callerAfter).to.be.lessThan(callerBefore);
+
+    expect(await market.proceeds(alice.address)).to.equal(0n);
+    expect(await market.totalProceeds()).to.equal(0n);
+  });
+
+  it("withdrawProceedsFor() reverts if seller has no funds", async function () {
+    const env = await deploy();
+    const { alice, bob, market } = env;
+
+    await expect(
+      market.connect(bob).withdrawProceedsFor(alice.address)
+    ).to.be.revertedWithCustomError(market, "NoFunds");
+  });
+
   it("withdrawProceeds() reverts if seller has no funds", async function () {
     const env = await deploy();
     const { alice, market } = env;

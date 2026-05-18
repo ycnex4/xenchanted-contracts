@@ -4,7 +4,7 @@ const DAY = 24 * 60 * 60;
 const HIGH_LEVEL = Number(process.env.PROFILE_HIGH_LEVEL || "6");
 
 async function main() {
-  const [deployer, alice, bob] = await ethers.getSigners();
+  const [deployer, alice, bob, carol] = await ethers.getSigners();
 
   const rows = [];
 
@@ -171,6 +171,10 @@ async function main() {
     await measure(label, market.connect(seller).withdrawProceeds());
   }
 
+  async function marketWithdrawForMeasured(label, seller = alice, caller = bob) {
+    await measure(label, market.connect(caller).withdrawProceedsFor(seller.address));
+  }
+
   // -----------------------------
   // 1) mintWithXEN baseline
   // -----------------------------
@@ -242,6 +246,16 @@ async function main() {
   const buyListingId = await marketListMeasured("Market list Core L1 for buy", marketBuyToken, marketPrice, alice);
   await marketBuyMeasured("Market buy Core L1", buyListingId, marketPrice, bob);
   await marketWithdrawMeasured("Market withdraw proceeds", alice);
+
+  const marketWithdrawForToken = await mintL1(alice);
+  const withdrawForListingId = await marketListMeasured(
+    "Market list Core L1 for withdrawFor",
+    marketWithdrawForToken,
+    marketPrice,
+    alice
+  );
+  await marketBuyMeasured("Market buy Core L1 for withdrawFor", withdrawForListingId, marketPrice, bob);
+  await marketWithdrawForMeasured("Market withdraw proceeds for seller", alice, carol);
 
   const highListingId = await marketListMeasured(
     `Market list Core L${HIGH_LEVEL + 1}`,

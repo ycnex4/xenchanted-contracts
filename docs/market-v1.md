@@ -93,8 +93,10 @@ Instead:
 
     buy() -> proceeds[seller] += price
     seller -> withdrawProceeds()
+    anyone -> withdrawProceedsFor(seller)
 
 This avoids coupling purchase execution to the seller's ability to receive ETH.
+`withdrawProceedsFor(seller)` is a permissionless convenience helper. It is not an admin, rescue, or privileged path: anyone can trigger it, but ETH is always sent to `seller`, never to the caller unless the caller is also the seller.
 
 Benefits:
 
@@ -182,6 +184,7 @@ State-changing methods:
     cancel(uint256 listingId)
     buy(uint256 listingId) payable
     withdrawProceeds()
+    withdrawProceedsFor(address payable seller)
 
 Read methods:
 
@@ -222,10 +225,13 @@ Local tests cover:
 - listed NFT cannot be redeemed by seller;
 - listed NFT cannot be staked by seller;
 - listed NFT cannot be enchanted by seller.
+- third party can withdraw proceeds for seller through `withdrawProceedsFor`;
+- `withdrawProceedsFor` sends ETH to seller, not caller;
+- failed `withdrawProceedsFor` rollback;
 
 Latest local suite after Market v1:
 
-    npx hardhat test -> 102 passing
+    npx hardhat test -> 105 passing
 
 ## Deployment notes
 

@@ -46,7 +46,7 @@ Main flows:
 
 Latest confirmed results:
 
-    Local Hardhat tests: 102 passing
+    Local Hardhat tests: 105 passing
     Mainnet fork real XEN integration test: 2 passing
     Slither high issues: 0
     Bytecode size check: all production contracts below 24KB
@@ -149,7 +149,7 @@ Details:
 
 Expected current result:
 
-    102 passing
+    105 passing
 
 ## Run Real XEN Mainnet Fork Test
 

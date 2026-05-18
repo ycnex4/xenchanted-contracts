@@ -29,7 +29,7 @@ Setup transactions are excluded unless explicitly listed as measured rows.
 
 | Flow                                    |  Gas Used |
 | --------------------------------------- | --------: |
-| Market deploy                           | 1,041,228 |
+| Market deploy                           | 1,055,298 |
 | MockXEN approve Core for mintWithXEN    |    45,962 |
 | Core mintWithXEN L1                     |   287,670 |
 | Enchant Core L1 + L1 -> L2              |   234,918 |
@@ -44,8 +44,11 @@ Setup transactions are excluded unless explicitly listed as measured rows.
 | Market list Core L1                     |   309,274 |
 | Market cancel Core L1 listing           |   114,531 |
 | Market list Core L1 for buy             |   309,274 |
-| Market buy Core L1                      |   152,348 |
-| Market withdraw proceeds                |    36,090 |
+| Market buy Core L1                      |   152,365 |
+| Market withdraw proceeds                |    36,143 |
+| Market list Core L1 for withdrawFor     |   309,274 |
+| Market buy Core L1 for withdrawFor      |   152,365 |
+| Market withdraw proceeds for seller     |    38,457 |
 | Market list Core L11                    |   320,084 |
 | Market cancel Core L11 listing          |   114,531 |
 | Market list Forged L2                   |   320,084 |
@@ -72,6 +75,7 @@ Market v1 measurements also support fixed-size state-changing behavior:
 - cancel removes exactly one active listing and transfers exactly one NFT back to the seller;
 - buy removes exactly one active listing, credits one proceeds balance and transfers exactly one NFT to the buyer;
 - withdrawProceeds clears one proceeds balance and performs one ETH call;
+- withdrawProceedsFor clears one seller proceeds balance and performs one ETH call to that seller, while the caller only pays gas;
 - Market pagination is read-only and does not affect state-changing gas;
 - Market flows do not traverse parent history, full collection size, NFT level depth, or nominal magnitude.
 
@@ -105,6 +109,6 @@ The updated profile supports the expected flat gas-scaling assumption by level a
 
 No measured state-changing user flow appears to scale with full collection size, parent history, level depth, or nominal amount.
 
-Market v1 adds fixed-size escrow flows. `list`, `cancel`, `buy`, and `withdrawProceeds` each operate on one NFT/listing/proceeds record at a time, with no unbounded iteration.
+Market v1 adds fixed-size escrow flows. `list`, `cancel`, `buy`, `withdrawProceeds`, and `withdrawProceedsFor` each operate on one NFT/listing/proceeds record at a time, with no unbounded iteration.
 
 Further profiling can refine these numbers, but there is no current evidence of unbounded gas growth in the measured production user flows.

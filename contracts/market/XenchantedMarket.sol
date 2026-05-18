@@ -15,7 +15,8 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
  *
  * The market has no admin, no fee, no pause, no upgrade path and no rescue functions.
  * Listed NFTs are held in escrow by this contract, while seller proceeds are stored
- * as pull payments and withdrawn by sellers after sale.
+ * as pull payments and withdrawn after sale. Anyone may trigger a proceeds withdrawal
+ * for a seller through withdrawProceedsFor(), but ETH is always sent to the seller.
  *
  * Direct safeTransferFrom transfers are rejected by the manual ERC721 receiver guard.
  * Unsafe ERC721 transferFrom can bypass ERC721 receiver checks by design of ERC721;
@@ -70,8 +71,9 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
     mapping(uint256 => uint256) private _activeIndexPlusOne;
 
     // PULL-PAYMENT ACCOUNTING
-    // ETH is credited to sellers on buy() and withdrawn later through withdrawProceeds().
-    // address(this).balance may be greater than totalProceeds only because of forced ETH.
+    // ETH is credited to sellers on buy() and withdrawn later through withdrawProceeds()
+    // or withdrawProceedsFor(seller). address(this).balance may be greater than
+    // totalProceeds only because of forced ETH.
 
     mapping(address => uint256) public proceeds;
     uint256 public totalProceeds;
@@ -233,20 +235,28 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
     /**
      * @dev Withdraws accumulated ETH sale proceeds for msg.sender.
      *
+     * This is the direct seller withdrawal path. It uses the same internal
+     * pull-payment logic as withdrawProceedsFor().
+     *
      * State is updated before the ETH call. If the ETH call fails, the whole
      * transaction reverts and the seller's proceeds are restored by EVM rollback.
      */
     function withdrawProceeds() external nonReentrant {
-        uint256 amount = proceeds[msg.sender];
-        if (amount == 0) revert NoFunds();
+        _withdrawProceeds(payable(msg.sender));
+    }
 
-        proceeds[msg.sender] = 0;
-        totalProceeds -= amount;
-
-        (bool ok, ) = msg.sender.call{value: amount}("");
-        if (!ok) revert WithdrawFailed();
-
-        emit ProceedsWithdrawn(msg.sender, amount);
+    /**
+     * @dev Permissionless helper to withdraw accumulated ETH proceeds for seller.
+     *
+     * This is not an admin or rescue path. Anyone can trigger the withdrawal,
+     * but ETH is always sent to seller, never to msg.sender unless msg.sender
+     * is the seller.
+     *
+     * State is updated before the ETH call. If the ETH call fails, the whole
+     * transaction reverts and the seller's proceeds are restored by EVM rollback.
+     */
+    function withdrawProceedsFor(address payable seller) external nonReentrant {
+        _withdrawProceeds(seller);
     }
 
     // PUBLIC VIEW METHODS
@@ -362,6 +372,21 @@ contract XenchantedMarket is ReentrancyGuard, IERC721Receiver {
 
     fallback() external payable {
         revert DirectTransferRejected();
+    }
+
+    // INTERNAL PULL-PAYMENT HELPER
+
+    function _withdrawProceeds(address payable seller) private {
+        uint256 amount = proceeds[seller];
+        if (amount == 0) revert NoFunds();
+
+        proceeds[seller] = 0;
+        totalProceeds -= amount;
+
+        (bool ok, ) = seller.call{value: amount}("");
+        if (!ok) revert WithdrawFailed();
+
+        emit ProceedsWithdrawn(seller, amount);
     }
 
     // INTERNAL VIEW HELPERS

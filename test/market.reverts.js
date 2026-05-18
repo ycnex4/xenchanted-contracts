@@ -243,6 +243,46 @@ describe("XenchantedMarket - reverts and edge cases", function () {
     expect(await market.totalProceeds()).to.equal(priceWei);
   });
 
+    it("failed withdrawProceedsFor restores proceeds because tx reverts", async function () {
+    const env = await deploy();
+    const { alice, bob, carol, core, market, rejectingReceiver } = env;
+
+    const priceWei = ethers.parseEther("0.25");
+    const tokenId = await mintL1(env, alice);
+
+    await core
+      .connect(alice)
+      ["transferFrom(address,address,uint256)"](
+        alice.address,
+        await rejectingReceiver.getAddress(),
+        tokenId
+      );
+
+    expect(await core.ownerOf(tokenId)).to.equal(await rejectingReceiver.getAddress());
+
+    await rejectingReceiver.approveAndList(
+      await core.getAddress(),
+      await market.getAddress(),
+      tokenId,
+      priceWei
+    );
+
+    const listingId = await market.activeListingIdByTokenId(tokenId);
+    await market.connect(bob).buy(listingId, { value: priceWei });
+
+    expect(await market.proceeds(await rejectingReceiver.getAddress())).to.equal(priceWei);
+    expect(await market.totalProceeds()).to.equal(priceWei);
+
+    await expect(
+      market
+        .connect(carol)
+        .withdrawProceedsFor(await rejectingReceiver.getAddress())
+    ).to.be.revertedWithCustomError(market, "WithdrawFailed");
+
+    expect(await market.proceeds(await rejectingReceiver.getAddress())).to.equal(priceWei);
+    expect(await market.totalProceeds()).to.equal(priceWei);
+  });
+
   it("direct ETH transfer to market receive() is rejected", async function () {
     const env = await deploy();
     const { alice, market } = env;
