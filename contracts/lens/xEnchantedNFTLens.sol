@@ -39,6 +39,8 @@ interface IxEnchantedNFTRead {
 
     function HALVING_INTERVAL() external view returns (uint256);
 
+    function XEN_BURN_HALVING_INTERVAL() external view returns (uint256);
+
     function INITIAL_NOMINAL() external view returns (uint256);
 
     function INITIAL_XEN_BURN() external view returns (uint256);
@@ -130,7 +132,13 @@ contract xEnchantedNFTLens {
     // PUBLIC VIEW TYPE TO DESCRIBE CURRENT PROTOCOL PARAMETERS
     struct ProtocolParams {
         uint64 genesisTs;
+
+        // Protocol epoch interval used by currentEpoch(), nextHalvingTs(),
+        // currentBaseNominal(), and rules derived from currentBaseNominal().
         uint256 halvingInterval;
+
+        // Separate XEN burn decay interval used only by currentXenBurnAmount().
+        uint256 xenBurnHalvingInterval;
         uint256 currentEpoch;
         uint256 nextHalvingTs;
         uint256 initialNominal;
@@ -183,6 +191,7 @@ contract xEnchantedNFTLens {
             ProtocolParams({
                 genesisTs: genesis,
                 halvingInterval: interval,
+                xenBurnHalvingInterval: CORE.XEN_BURN_HALVING_INTERVAL(),
                 currentEpoch: CORE.currentEpoch(),
                 nextHalvingTs: CORE.nextHalvingTs(),
                 initialNominal: CORE.INITIAL_NOMINAL(),

@@ -172,6 +172,7 @@ async function main() {
   console.log("Core.INITIAL_XEN_BURN:", ethers.formatEther(await core.INITIAL_XEN_BURN()), "XEN");
   console.log("Core.GENESIS_TS:", (await core.GENESIS_TS()).toString());
   console.log("Core.HALVING_INTERVAL:", (await core.HALVING_INTERVAL()).toString());
+  console.log("Core.XEN_BURN_HALVING_INTERVAL:", (await core.XEN_BURN_HALVING_INTERVAL()).toString());
   console.log("Core.currentEpoch:", (await core.currentEpoch()).toString());
   console.log("Core.currentBaseNominal:", ethers.formatEther(await core.currentBaseNominal()), "XNTD");
   console.log("Core.currentXenBurnAmount:", ethers.formatEther(await core.currentXenBurnAmount()), "XEN");
