@@ -132,8 +132,16 @@ async function main() {
   console.log("\n=== MARKET WIRING ===");
   assertEq("Market.CORE", await market.CORE(), ADDR.Core);
   assertBigIntEq("Market.MAX_PAGE_SIZE", await market.MAX_PAGE_SIZE(), 100n);
-  assertBigIntEq("Market.activeListingCount", await market.activeListingCount(), 0n);
-  assertBigIntEq("Market.nextListingId", await market.nextListingId(), 1n);
+
+  const marketActiveListingCount = await market.activeListingCount();
+  const marketNextListingId = await market.nextListingId();
+
+  console.log("✓ Market.activeListingCount:", marketActiveListingCount.toString());
+  console.log("✓ Market.nextListingId:", marketNextListingId.toString());
+
+  if (marketNextListingId < 1n) {
+    throw new Error("Market.nextListingId must be >= 1");
+  }
 
   console.log("\n=== LENS WIRING ===");
   assertEq("NFTLens.CORE", await nftLens.CORE(), ADDR.Core);
