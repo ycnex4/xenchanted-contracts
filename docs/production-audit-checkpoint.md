@@ -8,11 +8,47 @@ Current contract refactor checkpoint is stable.
 
 
 
-Latest confirmed local test suite: 70 passing.
+Latest confirmed local test suite: 105 passing.
 
 Latest confirmed mainnet fork XEN integration test: 2 passing.
 
 Working tree after checkpoint: nothing to commit, working tree clean.
+
+Current post-Market v1 readiness update:
+
+After the Market v1 checkpoint, the following Market readiness work was completed and merged into main:
+
+- Market v1 contract branch merged in 7be040a Merge branch 'market-v1';
+- Market Slither triage documented in ba572b9 Document Market Slither triage;
+- Market Slither triage linked from README in 29250cd Link Market Slither triage from README;
+- Market Slither triage wording refined after Theo review in 8214c5a Refine Market Slither triage wording.
+
+Market v1 contract status:
+
+- XenchantedMarket remains unchanged after Slither review;
+- current architecture remains the accepted baseline:
+  - ReentrancyGuard on all Market mutators;
+  - exact ERC721 receiver guard during list();
+  - pull-payment proceeds accounting;
+  - no admin, no fee, no pause, no upgrade path and no rescue functions;
+- Slither Market findings are documented as triaged findings, not ignored findings:
+  - list() reentrancy warning is assessed as a false positive in Market context;
+  - _withdrawProceeds() low-level call is accepted as the standard pull-payment pattern;
+  - missing-inheritance finding involving the test receiver interface is treated as test/mock noise;
+- Theo reviewed the final Market Slither triage wording and considered it audit-grade.
+
+Latest confirmed checks after Market v1:
+
+- npx hardhat test: 105 passing;
+- slither . --filter-paths "node_modules|artifacts|cache|test|scripts": completed and produced expected documented findings.
+
+Frontend integration note:
+
+- Vault Market v1 frontend was merged into xenchanted-dapp main in 65d0f05 Merge branch 'vault-market';
+- later Market frontend polish added event watchers with periodic fallback for Market state refresh of proceeds and listings in e95230f Auto-refresh Vault Market state.
+
+This post-Market update supersedes older pre-Market readiness notes where they refer to Market or frontend work as future work.
+
 Current post-review checkpoint update:
 
 Main branch is synced after the following documentation/script-only follow-ups:
