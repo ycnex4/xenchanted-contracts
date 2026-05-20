@@ -63,6 +63,7 @@ Security documentation:
 - [Real XEN gas profile](docs/security/real-xen-gas-profile.md)
 - [Mainnet deployment readiness](docs/mainnet-deployment-readiness.md)
 - [Market v1 design notes](docs/market-v1.md)
+- [Market Slither triage](docs/security/market-slither-triage.md) — documents Market v1 Slither findings, false positives, pull-payment rationale, and the intentional no-rescue policy.
 
 Economic documentation:
 
