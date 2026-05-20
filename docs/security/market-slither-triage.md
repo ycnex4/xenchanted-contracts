@@ -34,6 +34,8 @@ Direct `safeTransferFrom` transfers are rejected by the manual ERC-721 receiver 
 
 Unsafe ERC-721 `transferFrom` can bypass receiver checks by ERC-721 design. If a user manually transfers an NFT into the Market contract through unsafe `transferFrom`, this is treated as documented technical user error. The immutable no-admin Market does not provide a rescue path because a permissionless rescue function can become a theft vector for mistakenly transferred third-party NFTs.
 
+The `receive` and `fallback` guards reject direct ETH transfers. ETH forcibly sent to the Market contract, for example through `selfdestruct` or block producer coinbase mechanics, would be permanently locked. This is accepted as a property of immutable no-admin contracts.
+
 ## Slither: reentrancy-no-eth / reentrancy-benign in `list()`
 
 Slither reports `list()` because it performs an external call before writing the final listing state.
@@ -42,7 +44,7 @@ External call:
 
     CORE.safeTransferFrom(msg.sender, address(this), tokenId);
 
-This is a known false positive for Market v1.
+This is assessed as a false positive for Market v1.
 
 Reasons:
 
@@ -52,12 +54,13 @@ Reasons:
    - `cancel`
    - `withdrawProceeds`
    - `withdrawProceedsFor`
-3. The ERC-721 receiver guard accepts only one exact expected transfer:
+3. All five mutators share the same `ReentrancyGuard` lock, so a reentrant entry during `safeTransferFrom` cannot reach any of them.
+4. The ERC-721 receiver guard accepts only one exact expected transfer:
    - expected collection: `CORE`
    - expected seller: `msg.sender`
    - expected token ID: `tokenId`
-4. Any reentrant attempt into Market mutators during `safeTransferFrom` is blocked by `ReentrancyGuard`.
-5. If any later operation reverts, the whole transaction reverts, including the NFT transfer.
+5. `ReentrancyGuard` provides the primary protection. The ERC-721 receiver guard provides defence-in-depth: even if reentrant entry were possible, the guard would still prevent arbitrary token capture.
+6. If any later operation reverts, the whole transaction reverts, including the NFT transfer.
 
 The current architecture is intentionally simpler and safer than introducing a separate pending-listing state before the escrow transfer.
 
@@ -82,6 +85,8 @@ If the ETH call fails, the function reverts and EVM rollback restores the previo
 
 Decision: no contract change. Standard pull-payment pattern.
 
+Gas-cost note on `withdrawProceedsFor`: anyone may call `withdrawProceedsFor(seller)`. If the seller's address is a non-receiving contract, the ETH transfer reverts and the caller bears the gas cost. Proceeds are safe: accounting state is zeroed before the call, and reversion restores it. This is standard pull-payment behavior for a permissionless helper; gas griefing is accepted as the caller's responsibility to verify the seller's receiving capability.
+
 ## Slither: missing-inheritance involving test receiver interface
 
 Slither reports that `XenchantedMarket` should inherit from a test/mock receiver interface.
@@ -105,4 +110,4 @@ Market Slither findings are triaged as follows:
 | Missing inheritance for test receiver | Test/mock noise |
 | No rescue function | Intentional no-admin immutable design decision |
 
-No Market contract changes are required from this Slither pass.
+No Market contract changes are warranted. All findings are triaged with documented justification.
