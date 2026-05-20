@@ -14,6 +14,15 @@ Latest confirmed mainnet fork XEN integration test: 2 passing.
 
 Working tree after checkpoint: nothing to commit, working tree clean.
 
+Current XEN burn halving update:
+
+- protocol/base nominal halving remains on the 180-day `HALVING_INTERVAL`;
+- XEN burn decay now uses a separate 360-day `XEN_BURN_HALVING_INTERVAL`;
+- `currentBaseNominal()` and Forge bounds remain tied to the 180-day protocol epoch;
+- `currentXenBurnAmount()` is the only production value moved to the slower 360-day XEN burn schedule;
+- xEnchantedNFTLens exposes `xenBurnHalvingInterval` in `ProtocolParams` so the frontend can read both intervals from on-chain source-of-truth;
+- dedicated tests confirm that after 180 days base nominal halves while XEN burn does not, and after 360 days XEN burn halves.
+
 Current post-Market v1 readiness update:
 
 After the Market v1 checkpoint, the following Market readiness work was completed and merged into main:

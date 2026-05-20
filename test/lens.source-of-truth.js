@@ -78,6 +78,7 @@ describe("Lens source-of-truth views", function () {
 
     expect(p.genesisTs).to.equal(await core.GENESIS_TS());
     expect(p.halvingInterval).to.equal(await core.HALVING_INTERVAL());
+    expect(p.xenBurnHalvingInterval).to.equal(await core.XEN_BURN_HALVING_INTERVAL());
     expect(p.currentEpoch).to.equal(await core.currentEpoch());
     expect(p.nextHalvingTs).to.equal(await core.nextHalvingTs());
 

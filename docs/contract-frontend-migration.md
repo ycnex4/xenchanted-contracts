@@ -325,6 +325,7 @@ Protocol params should be read from Lens/Core instead of hardcoded:
 ```text
 genesisTs
 halvingInterval
+xenBurnHalvingInterval
 currentEpoch
 nextHalvingTs
 initialNominal
@@ -338,6 +339,12 @@ bpsDenom
 earlyPenaltyBps
 maxWalletNfts
 ```
+
+Protocol halving note:
+
+- `halvingInterval` remains the 180-day protocol epoch interval used for `currentEpoch`, `currentBaseNominal`, `nextHalvingTs`, and rules derived from `currentBaseNominal` such as Forge bounds.
+- `xenBurnHalvingInterval` is a separate 360-day interval used only by `currentXenBurnAmount`.
+- Frontend code must not assume that XEN burn decay and protocol/base nominal decay use the same interval.
 
 ## 12. Enchant preview truth
 

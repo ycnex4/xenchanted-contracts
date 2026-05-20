@@ -54,7 +54,7 @@ The halving helper applies a deterministic lower bound:
 
 `_applyHalving(value, k)` returns at least `1`.
 
-As a result, current base nominal and current XEN burn amount never decay to zero. After a very large number of epochs, both values asymptotically reach a minimum value of `1 wei`.
+As a result, current base nominal and current XEN burn amount never decay to zero. The two values may use different halving schedules, but after a very large number of their respective halving steps, both asymptotically reach a minimum value of `1 wei`.
 
 This is intentional: protocol minting remains mathematically defined and never reaches a zero-cost / zero-nominal state.
 

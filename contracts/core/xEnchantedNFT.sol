@@ -36,7 +36,13 @@ interface ICoreTokenURILens {
  */
 contract xEnchantedNFT is ERC721, IBurnRedeemable {
     // PUBLIC CONSTANTS
+    // Protocol epochs use the 180-day halving interval for base nominal and
+    // all rules derived from currentBaseNominal(), including Forge bounds.
     uint256 public constant HALVING_INTERVAL = 180 days;
+
+    // XEN burn decay is intentionally slower than protocol epochs. This affects
+    // only the XEN amount required to mint a Core L1 through mintWithXEN().
+    uint256 public constant XEN_BURN_HALVING_INTERVAL = 360 days;
     uint256 public constant ENCHANT_MULTIPLIER = 3;
     uint8   public constant MAX_LEVEL = 22;
 
@@ -324,10 +330,19 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     }
 
     /**
-     * @dev returns the current XEN burn amount required to mint a Core L1
+     * @dev Returns the current XEN burn amount required to mint a Core L1.
+     *
+     * XEN burn uses a separate 360-day halving index so the XEN entry cost
+     * decays more slowly than the 180-day protocol epoch/base nominal schedule.
      */
+    function _xenBurnHalvingIndex() internal view returns (uint256 k) {
+        if (block.timestamp > uint256(GENESIS_TS)) {
+            k = (block.timestamp - uint256(GENESIS_TS)) / XEN_BURN_HALVING_INTERVAL;
+        }
+    }
+
     function currentXenBurnAmount() public view returns (uint256) {
-        return _applyHalving(INITIAL_XEN_BURN, _halvingIndex());
+        return _applyHalving(INITIAL_XEN_BURN, _xenBurnHalvingIndex());
     }
 
     /**
