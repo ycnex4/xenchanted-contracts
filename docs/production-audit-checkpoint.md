@@ -14,6 +14,44 @@ Latest confirmed mainnet fork XEN integration test: 2 passing.
 
 Working tree after checkpoint: nothing to commit, working tree clean.
 
+Current post-XEN-burn-halving Sepolia deployment update:
+
+After separating the XEN burn halving schedule, a fresh Sepolia deployment was executed and connected to the frontend.
+
+Contracts main reference:
+
+- 566bd82 Merge branch 'xen-burn-halving-360'
+
+Frontend main references:
+
+- f25edd4 Add NFT Lens ABI and XEN burn halving param;
+- f3ebc75 Update Sepolia contract addresses;
+- 7aa8794 Show XEN burn halving in epoch snapshot.
+
+New Sepolia deployment addresses:
+
+- MockXEN: 0x1f041C715fCDD625EC58a55ce9af0e6fDe5dAc76;
+- Core: 0x669B5a405fed03D1770d94F1013c610a94c4AECF;
+- XNTD: 0x1f770AcC0a64D5471C3e132660BCf9b404C8D27C;
+- Stake: 0xA523d4d308d2E1B0052605db3c43C573B4B0bD7b;
+- Forge: 0x79272a841E9d2118bbBACF326C0817643B975F8f;
+- Market: 0x189ddFa46A977C52E004F938BAD2675D3f43c6e4;
+- xEnchantedNFTLens: 0x478d125fA54f065105062dEc8bC4fC4350B1E176;
+- xEnchantedTokenURILens: 0x19B7824334A11f421d9Bb38449ba63E91D652C17;
+- xEnchantedStakeTokenURILens: 0x22E3CAB2A74E7a7B703D746a85ce4e90CA339700.
+
+Post-deploy verification:
+
+- `npx hardhat test`: 106 passing before deployment;
+- `npx hardhat run ./scripts/check-sepolia.js --network sepolia`: passed;
+- Market started clean with `activeListingCount == 0` and `nextListingId == 1`;
+- Core reported `XEN_BURN_HALVING_INTERVAL == 31104000`, which equals 360 days;
+- frontend production deployment was updated to the new Sepolia addresses;
+- manual smoke test passed through mint, enchant, listing, purchase and Market state updates;
+- Home epoch snapshot now displays separate epoch and XEN burn halving information.
+
+This confirms that the Sepolia demo environment is aligned with the new XEN burn schedule while preserving the 180-day protocol epoch schedule.
+
 Current XEN burn halving update:
 
 - protocol/base nominal halving remains on the 180-day `HALVING_INTERVAL`;
