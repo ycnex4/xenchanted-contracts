@@ -264,7 +264,7 @@ timestamp usage for epochs, APR decay and staking maturity.
 
 strict equality invariant/sentinel checks.
 
-remaining reentrancy-pattern warnings for trusted one-time wiring and protocol flows.
+reentrancy-pattern warnings for the three intentional CEI-deviation flows (`mintWithXEN`, `stake()`, `Market.list`) — triaged and confirmed blocked by `nonReentrant` via targeted tests (`test/reentrancy-triage.js`).
 
 missing-inheritance style suggestions.
 
