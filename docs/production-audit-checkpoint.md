@@ -999,3 +999,42 @@ transformed through immutable protocol rules,
 represented by protocol NFTs and stake positions,
 
 and never distributed from an allocation pool.
+
+## Reentrancy-pattern Slither triage tests
+
+After the XEN burn halving schedule update, Slither was rerun and the main reentrancy-pattern warnings were manually reviewed for the intentional CEI deviations in the protocol:
+
+- `xEnchantedNFT.mintWithXEN`
+- `xEnchantedStake.stake`
+- `XenchantedMarket.list`
+
+These flows are intentional protocol patterns:
+
+- `mintWithXEN` performs `XEN.burn(...)` before Core NFT state is created, because a Core NFT must only be minted after a successful XEN burn.
+- `stake` calls `CORE.burnForStaking(...)` before creating the Stake position, because the Stake position must be backed by a successfully burned Core/Forged NFT snapshot.
+- `Market.list` transfers the NFT into escrow before creating the listing state. This path is protected by `nonReentrant` and by an exact `onERC721Received` receiver guard for the expected Core collection, seller, and tokenId.
+
+No production contract logic was changed for this hardening step.
+
+A targeted Hardhat test suite was added:
+
+- `contracts/mocks/ReentrancyMocks.sol`
+- `test/reentrancy-triage.js`
+
+The tests verify that attempted reentry is blocked during:
+
+- the XEN burn path in `mintWithXEN`;
+- the Core `burnForStaking` path in `stake`;
+- the escrow `safeTransferFrom` path in `Market.list`.
+
+Verification:
+
+~~~bash
+npx hardhat test test/reentrancy-triage.js
+# 3 passing
+
+npx hardhat test
+# 109 passing
+~~~
+
+Conclusion: the inspected Slither reentrancy-pattern findings are documented as manually reviewed intentional patterns with targeted test coverage. No actionable reentrancy path was identified in these flows.
