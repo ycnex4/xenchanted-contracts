@@ -119,7 +119,7 @@ describe("Events - artifact lifecycle observability", function () {
     expect(evt.args.xntdBurned).to.equal(0n);
   });
 
-  it("Redeemed event includes type, level, nominal and minted XNTD", async function () {
+  it("Redeemed event includes type, level, nominal, minted XNTD and burn provenance", async function () {
     const env = await deploy();
     const { alice, core, xntd } = env;
 
@@ -139,8 +139,46 @@ describe("Events - artifact lifecycle observability", function () {
     expect(evt.args.level).to.equal(d.level);
     expect(evt.args.nominal).to.equal(d.nominal);
     expect(evt.args.xntdMinted).to.equal(d.nominal);
+    expect(evt.args.xenBurned).to.equal(d.xenBurned);
+    expect(evt.args.xntdBurned).to.equal(d.xntdBurned);
+    expect(evt.args.xenBurned).to.equal(env.initialXenBurn);
+    expect(evt.args.xntdBurned).to.equal(0n);
 
     expect((await xntd.balanceOf(alice.address)) - before).to.equal(evt.args.xntdMinted);
+  });
+
+    it("Redeemed event finalizes accumulated Core xenBurned after Enchant", async function () {
+    const env = await deploy();
+    const { alice, core } = env;
+
+    const id1 = await mintL1(env, alice);
+    const id2 = await mintL1(env, alice);
+
+    const enchantTx = await core.connect(alice).enchant(id1, id2);
+    const enchantRc = await enchantTx.wait();
+    const enchantEvt = findEvent(enchantRc, "Enchanted");
+    const l2Id = enchantEvt.args.id;
+
+    const d = await core.nftData(l2Id);
+
+    expect(d.isForged).to.equal(false);
+    expect(d.level).to.equal(2n);
+    expect(d.xenBurned).to.equal(env.initialXenBurn * 2n);
+    expect(d.xntdBurned).to.equal(0n);
+
+    const redeemTx = await core.connect(alice).redeem(l2Id);
+    const redeemRc = await redeemTx.wait();
+    const redeemEvt = findEvent(redeemRc, "Redeemed");
+
+    expect(redeemEvt).to.not.equal(undefined);
+    expect(redeemEvt.args.id).to.equal(l2Id);
+    expect(redeemEvt.args.owner).to.equal(alice.address);
+    expect(redeemEvt.args.forged).to.equal(false);
+    expect(redeemEvt.args.level).to.equal(2n);
+    expect(redeemEvt.args.nominal).to.equal(d.nominal);
+    expect(redeemEvt.args.xntdMinted).to.equal(d.nominal);
+    expect(redeemEvt.args.xenBurned).to.equal(env.initialXenBurn * 2n);
+    expect(redeemEvt.args.xntdBurned).to.equal(0n);
   });
 
   it("StakeBurn and Phoenix events include artifact type, level and nominal context", async function () {
@@ -214,5 +252,39 @@ describe("Events - artifact lifecycle observability", function () {
     const fd = await core.nftData(mintedEvt.args.id);
     expect(fd.xntdBurned).to.equal(mintedEvt.args.xntdBurned);
     expect(await xntd.forgeBurned()).to.equal(amount);
+  });
+
+    it("Redeemed event preserves Forged XNTD burn provenance without XEN burn", async function () {
+    const env = await deploy();
+    const { alice, core, forge } = env;
+
+    const amount = await forge.minForgeAmount();
+    await fundXntd(env, amount);
+    const baseId = await mintL1(env, alice);
+
+    const forgeTx = await forge.connect(alice).forge(baseId, amount);
+    const forgeRc = await forgeTx.wait();
+    const mintedEvt = findParsedEvent(forgeRc, core, "Minted", (evt) => evt.args.forged === true);
+    const forgedId = mintedEvt.args.id;
+
+    const d = await core.nftData(forgedId);
+
+    expect(d.isForged).to.equal(true);
+    expect(d.xenBurned).to.equal(0n);
+    expect(d.xntdBurned).to.equal(amount);
+
+    const redeemTx = await core.connect(alice).redeem(forgedId);
+    const redeemRc = await redeemTx.wait();
+    const redeemEvt = findEvent(redeemRc, "Redeemed");
+
+    expect(redeemEvt).to.not.equal(undefined);
+    expect(redeemEvt.args.id).to.equal(forgedId);
+    expect(redeemEvt.args.owner).to.equal(alice.address);
+    expect(redeemEvt.args.forged).to.equal(true);
+    expect(redeemEvt.args.level).to.equal(d.level);
+    expect(redeemEvt.args.nominal).to.equal(d.nominal);
+    expect(redeemEvt.args.xntdMinted).to.equal(d.nominal);
+    expect(redeemEvt.args.xenBurned).to.equal(0n);
+    expect(redeemEvt.args.xntdBurned).to.equal(amount);
   });
 });
