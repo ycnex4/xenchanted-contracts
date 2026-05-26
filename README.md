@@ -57,6 +57,7 @@ Security documentation:
 - [Slither triage](docs/security/slither-triage.md)
 - [Real XEN mainnet fork validation](docs/security/mainnet-fork-xen.md)
 - [External review follow-ups](docs/security/external-review-followups.md)
+- [Redeemed Core XEN Burn Indexing](docs/architecture/redeemed-core-xenburn-indexing.md) — documents how Core Redeem events expose finalized XEN-burn provenance for future indexing.
 - [Bytecode size check](docs/security/bytecode-size-check.md)
 - [Gas profiling notes](docs/security/gas-profiling-notes.md)
 - [Gas profiling results](docs/security/gas-profiling-results.md)

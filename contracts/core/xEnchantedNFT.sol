@@ -130,7 +130,9 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
         bool indexed forged,
         uint8 level,
         uint256 nominal,
-        uint256 xntdMinted
+        uint256 xntdMinted,
+        uint256 xenBurned,
+        uint256 xntdBurned
     );
 
     event StakeBurn(
@@ -477,7 +479,16 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     // interaction: revert rolls back burn/delete
     XNTD.mint(msg.sender, nom);
 
-    emit Redeemed(id, msg.sender, d.isForged, d.level, nom, nom);
+    emit Redeemed(
+        id,
+        msg.sender,
+        d.isForged,
+        d.level,
+        nom,
+        nom,
+        d.xenBurned,
+        d.xntdBurned
+    );
     return nom;
 }
 
