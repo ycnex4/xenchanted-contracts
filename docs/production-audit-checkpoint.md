@@ -9,7 +9,7 @@ complete on the published deployment-readiness commit.
 
 
 
-Latest confirmed local test suite: 121 passing.
+Latest confirmed local test suite: 123 passing.
 
 The final Avalanche real-aXEN fork run passed 2 tests, including
 `Core.mintWithXEN()` against the production aXEN burn callback. The final
@@ -19,7 +19,7 @@ Ethereum real-XEN immutable-profile fork run also passed 2 tests, including
 Latest Avalanche deployment-readiness checks:
 
 - read-only C-Chain preflight passed at chain ID 43114;
-- full local suite passed with 121 tests;
+- full local suite passed with 123 tests;
 - real-aXEN fork integration passed with 2 tests;
 - real Ethereum XEN regression fork passed with 2 tests;
 - eleven-transaction deployment ceremony simulation used 18,478,023 gas;
@@ -29,6 +29,9 @@ Latest Avalanche deployment-readiness checks:
   categories;
 - `npm audit --omit=dev` reported zero vulnerabilities;
 - checked toolchain: Node.js 24.10.0, npm 11.6.1 and Hardhat 2.28.6.
+- Avalanche post-deploy and verification addresses are isolated under
+  `AVALANCHE_*_ADDRESS` variables, and the deploy script requires an exact
+  reviewed `AVALANCHE_SOURCE_COMMIT` match before the first transaction.
 
 No mainnet deployment was executed by the profile refactor.
 

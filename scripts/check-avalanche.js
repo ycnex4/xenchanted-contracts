@@ -11,30 +11,13 @@ const {
   INITIAL_XEN_BURN_TEXT,
   AVALANCHE_PROTOCOL_PROFILE,
 } = require("./lib/avalanche-mainnet");
+const {
+  AVALANCHE_ADDRESS_ENV_BY_NAME,
+  readAvalancheAddresses,
+} = require("./lib/avalanche-addresses");
 
 const ZERO = ethers.ZeroAddress;
-
-const ADDR = {
-  Core: process.env.CORE_ADDRESS || "",
-  XNTD: process.env.XNTD_ADDRESS || "",
-  Stake: process.env.STAKE_ADDRESS || "",
-  Forge: process.env.FORGE_ADDRESS || "",
-  Market: process.env.MARKET_ADDRESS || "",
-  NFTLens: process.env.NFT_LENS_ADDRESS || "",
-  TokenURILens: process.env.TOKEN_URI_LENS_ADDRESS || "",
-  StakeTokenURILens: process.env.STAKE_TOKEN_URI_LENS_ADDRESS || "",
-};
-
-const ENV_BY_NAME = {
-  Core: "CORE_ADDRESS",
-  XNTD: "XNTD_ADDRESS",
-  Stake: "STAKE_ADDRESS",
-  Forge: "FORGE_ADDRESS",
-  Market: "MARKET_ADDRESS",
-  NFTLens: "NFT_LENS_ADDRESS",
-  TokenURILens: "TOKEN_URI_LENS_ADDRESS",
-  StakeTokenURILens: "STAKE_TOKEN_URI_LENS_ADDRESS",
-};
+const ADDR = readAvalancheAddresses();
 
 function same(a, b) {
   return String(a).toLowerCase() === String(b).toLowerCase();
@@ -63,7 +46,9 @@ function assertBigInt(label, actual, expected) {
 
 async function requireAddressAndCode(name, value) {
   if (!ethers.isAddress(value) || value === ZERO) {
-    throw new Error(`Missing or invalid ${name}. Set ${ENV_BY_NAME[name]}.`);
+    throw new Error(
+      `Missing or invalid ${name}. Set ${AVALANCHE_ADDRESS_ENV_BY_NAME[name]}.`
+    );
   }
 
   const code = await ethers.provider.getCode(value);

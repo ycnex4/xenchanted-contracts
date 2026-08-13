@@ -12,22 +12,19 @@ const {
   coreConstructorArgs,
   stakeConstructorArgs,
 } = require("./lib/protocol-profiles");
+const {
+  AVALANCHE_ADDRESS_ENV_BY_NAME,
+  readAvalancheAddresses,
+} = require("./lib/avalanche-addresses");
 
-const ADDR = {
-  Core: process.env.CORE_ADDRESS || "",
-  XNTD: process.env.XNTD_ADDRESS || "",
-  Stake: process.env.STAKE_ADDRESS || "",
-  Forge: process.env.FORGE_ADDRESS || "",
-  Market: process.env.MARKET_ADDRESS || "",
-  NFTLens: process.env.NFT_LENS_ADDRESS || "",
-  TokenURILens: process.env.TOKEN_URI_LENS_ADDRESS || "",
-  StakeTokenURILens: process.env.STAKE_TOKEN_URI_LENS_ADDRESS || "",
-};
+const ADDR = readAvalancheAddresses();
 
 function requireAddresses() {
   for (const [name, address] of Object.entries(ADDR)) {
     if (!ethers.isAddress(address) || address === ethers.ZeroAddress) {
-      throw new Error(`Missing or invalid ${name} verification address`);
+      throw new Error(
+        `Missing or invalid ${name}. Set ${AVALANCHE_ADDRESS_ENV_BY_NAME[name]}.`
+      );
     }
   }
 }

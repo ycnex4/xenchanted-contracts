@@ -76,6 +76,7 @@ Mainnet-only deployment script with these safety controls:
 - separate irreversible wiring/rights-burn confirmation;
 - exact chain ID guard;
 - clean Git working tree requirement;
+- exact reviewed source commit confirmation matching `git HEAD`;
 - source commit and branch captured in a runtime manifest;
 - nonzero deployer AVAX balance check;
 - real aXEN code and metadata checks;
@@ -161,11 +162,31 @@ Deployment additionally requires:
 
 ```text
 AVALANCHE_DEPLOYER_PRIVATE_KEY=<dedicated deployer key>
+AVALANCHE_SOURCE_COMMIT=<full 40-character reviewed git HEAD>
 AVALANCHE_DEPLOY_CONFIRM=I_UNDERSTAND_THIS_DEPLOYS_XC_TO_AVALANCHE_MAINNET
 AVALANCHE_GENESIS_CONFIRM=FRESH_AVALANCHE_GENESIS_100_XNTD_100M_AXEN_60D_120D_10D_240D
 AVALANCHE_INIT_CONFIRM=BURN_DEPLOYER_RIGHTS_AND_FINALIZE_AVALANCHE_WIRING
 AVALANCHE_CONFIRMATIONS=3
 ```
+
+Immediate post-deploy check and source verification use Avalanche-specific
+address variables so existing Sepolia or Ethereum values cannot be selected by
+accident:
+
+```text
+AVALANCHE_CORE_ADDRESS=<deployed Core>
+AVALANCHE_XNTD_ADDRESS=<deployed XNTD>
+AVALANCHE_STAKE_ADDRESS=<deployed Stake>
+AVALANCHE_FORGE_ADDRESS=<deployed Forge>
+AVALANCHE_MARKET_ADDRESS=<deployed Market>
+AVALANCHE_NFT_LENS_ADDRESS=<deployed NFT Lens>
+AVALANCHE_TOKEN_URI_LENS_ADDRESS=<deployed Core tokenURI Lens>
+AVALANCHE_STAKE_TOKEN_URI_LENS_ADDRESS=<deployed Stake tokenURI Lens>
+```
+
+The deployment script prints this exact environment block after all final
+on-chain invariants pass. Copy it from the completed manifest/output; do not
+reuse the generic address variables used by older network workflows.
 
 Never commit or print the RPC credentials or private key. The deployment key
 must be dedicated to this operation and funded only with the AVAX required for

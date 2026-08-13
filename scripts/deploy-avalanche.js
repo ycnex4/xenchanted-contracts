@@ -21,6 +21,12 @@ const {
   coreConstructorArgs,
   stakeConstructorArgs,
 } = require("./lib/protocol-profiles");
+const {
+  AVALANCHE_ADDRESS_ENV_BY_NAME,
+} = require("./lib/avalanche-addresses");
+const {
+  requireReviewedSourceCommit,
+} = require("./lib/avalanche-deployment-safety");
 
 function requireConfirmation(envName, expected) {
   if (process.env[envName] !== expected) {
@@ -189,6 +195,7 @@ async function main() {
 
   const confirmations = readPositiveInteger("AVALANCHE_CONFIRMATIONS", "3");
   const source = readSourceState();
+  requireReviewedSourceCommit(source.commit, process.env.AVALANCHE_SOURCE_COMMIT);
   const network = await ethers.provider.getNetwork();
 
   if (network.chainId !== AVALANCHE_MAINNET_CHAIN_ID) {
@@ -415,6 +422,10 @@ async function main() {
   console.log("Manifest:", state.manifestPath);
   for (const [name, entry] of Object.entries(state.manifest.contracts)) {
     console.log(`${name}:`, entry.address);
+  }
+  console.log("Avalanche address environment block:");
+  for (const [name, envName] of Object.entries(AVALANCHE_ADDRESS_ENV_BY_NAME)) {
+    console.log(`${envName}=${state.manifest.contracts[name].address}`);
   }
   console.log("Run scripts/check-avalanche.js before frontend integration.");
 }

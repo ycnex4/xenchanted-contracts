@@ -46,7 +46,7 @@ Main flows:
 
 Latest confirmed results:
 
-    Local Hardhat tests: 121 passing
+    Local Hardhat tests: 123 passing
     Mainnet fork real XEN integration test: 2 passing
     Avalanche fork real aXEN integration test: 2 passing
     Slither 0.11.5 production findings: 97 (High: 0)
@@ -166,7 +166,7 @@ Details:
 
 Expected current result:
 
-    121 passing
+    123 passing
 
 ## Run Real XEN Mainnet Fork Test
 
