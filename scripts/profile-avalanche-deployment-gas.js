@@ -4,17 +4,30 @@ const {
   AXEN_MAINNET,
   INITIAL_NOMINAL_TEXT,
   INITIAL_XEN_BURN_TEXT,
+  AVALANCHE_PROTOCOL_PROFILE,
 } = require("./lib/avalanche-mainnet");
+const {
+  coreConstructorArgs,
+  stakeConstructorArgs,
+} = require("./lib/protocol-profiles");
 
 async function main() {
-  if (!process.env.AVALANCHE_RPC_URL) {
-    throw new Error("AVALANCHE_RPC_URL is required for the Avalanche fork profile");
+  const localOnly = process.env.AVALANCHE_PROFILE_LOCAL_ONLY === "1";
+
+  if (!process.env.AVALANCHE_RPC_URL && !localOnly) {
+    throw new Error(
+      "AVALANCHE_RPC_URL is required unless AVALANCHE_PROFILE_LOCAL_ONLY=1"
+    );
   }
 
-  await network.provider.request({
-    method: "hardhat_reset",
-    params: [{ forking: { jsonRpcUrl: process.env.AVALANCHE_RPC_URL } }],
-  });
+  if (localOnly) {
+    await network.provider.request({ method: "hardhat_reset", params: [] });
+  } else {
+    await network.provider.request({
+      method: "hardhat_reset",
+      params: [{ forking: { jsonRpcUrl: process.env.AVALANCHE_RPC_URL } }],
+    });
+  }
   await network.provider.request({ method: "evm_mine", params: [] });
 
   const rows = [];
@@ -42,17 +55,26 @@ async function main() {
   const initialXenBurn = ethers.parseEther(INITIAL_XEN_BURN_TEXT);
   const feeData = await ethers.provider.getFeeData();
 
-  const core = await deploy("Deploy Core", "xEnchantedNFT", [
-    AXEN_MAINNET,
-    initialNominal,
-    initialXenBurn,
-  ]);
+  const core = await deploy(
+    "Deploy Core",
+    "xEnchantedNFT",
+    coreConstructorArgs(
+      AXEN_MAINNET,
+      initialNominal,
+      initialXenBurn,
+      AVALANCHE_PROTOCOL_PROFILE
+    )
+  );
   const coreAddress = await core.getAddress();
 
   const xntd = await deploy("Deploy XNTD", "XNTDToken", [coreAddress]);
   const xntdAddress = await xntd.getAddress();
 
-  const stake = await deploy("Deploy Stake", "xEnchantedStake", [coreAddress]);
+  const stake = await deploy(
+    "Deploy Stake",
+    "xEnchantedStake",
+    stakeConstructorArgs(coreAddress, AVALANCHE_PROTOCOL_PROFILE)
+  );
   const stakeAddress = await stake.getAddress();
 
   const forge = await deploy("Deploy Forge", "xEnchantedForge", [
@@ -87,7 +109,11 @@ async function main() {
     core.init(xntdAddress, stakeAddress, forgeAddress)
   );
 
-  console.log("=== AVALANCHE FORK DEPLOYMENT GAS PROFILE ===");
+  console.log(
+    localOnly
+      ? "=== AVALANCHE LOCAL DEPLOYMENT GAS PROFILE ==="
+      : "=== AVALANCHE FORK DEPLOYMENT GAS PROFILE ==="
+  );
   console.log("| Transaction | Gas used |");
   console.log("| --- | ---: |");
   for (const row of rows) {
@@ -95,16 +121,22 @@ async function main() {
   }
   console.log("Total gas:", totalGas.toString());
 
-  if (feeData.gasPrice != null) {
+  if (feeData.gasPrice != null && !localOnly) {
     console.log("Hardhat fork fee quote (wei):", feeData.gasPrice.toString());
     console.log(
       "Estimated total at sampled gas price (AVAX):",
       ethers.formatEther(totalGas * feeData.gasPrice)
     );
+  } else if (localOnly) {
+    console.log("Local Hardhat fee quote is intentionally excluded from the AVAX budget.");
   }
 
   console.log("Use a fresh live-network preflight fee quote for the real budget.");
-  console.log("This was a local fork profile. No Avalanche transaction was sent.");
+  console.log(
+    localOnly
+      ? "This was a deterministic local profile. No Avalanche transaction was sent."
+      : "This was a local fork profile. No Avalanche transaction was sent."
+  );
 }
 
 main().catch((error) => {

@@ -19,11 +19,18 @@ describe("Avalanche deployment constants", function () {
   it("keeps the reviewed production genesis values", function () {
     expect(config.INITIAL_NOMINAL_TEXT).to.equal("100");
     expect(config.INITIAL_XEN_BURN_TEXT).to.equal("100000000");
+    expect(config.AVALANCHE_PROTOCOL_PROFILE).to.deep.include({
+      halvingIntervalSeconds: 60 * 24 * 60 * 60,
+      xenBurnHalvingIntervalSeconds: 120 * 24 * 60 * 60,
+      minStakeDays: 10,
+      maxStakeDays: 240,
+    });
   });
 
   it("uses Avalanche-specific deploy and rights-burn confirmations", function () {
     expect(config.DEPLOY_CONFIRMATION).to.include("AVALANCHE_MAINNET");
     expect(config.GENESIS_CONFIRMATION).to.include("FRESH_AVALANCHE_GENESIS");
+    expect(config.GENESIS_CONFIRMATION).to.include("60D_120D_10D_240D");
     expect(config.INIT_CONFIRMATION).to.include("BURN_DEPLOYER_RIGHTS");
   });
 });

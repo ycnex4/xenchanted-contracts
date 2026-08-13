@@ -1,6 +1,7 @@
 // test/stake.basic.js
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { ETHEREUM_PROTOCOL_PROFILE: P } = require("../scripts/lib/protocol-profiles");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 
 describe("xEnchantedStake - basic tests", function () {
@@ -14,13 +15,13 @@ describe("xEnchantedStake - basic tests", function () {
     const initialNominal = ethers.parseEther("100");
     const initialXenBurn = ethers.parseEther("10");
     const Core = await ethers.getContractFactory("xEnchantedNFT");
-    const core = await Core.deploy(await xen.getAddress(), initialNominal, initialXenBurn);
+    const core = await Core.deploy(await xen.getAddress(), initialNominal, initialXenBurn, P.halvingIntervalSeconds, P.xenBurnHalvingIntervalSeconds);
 
     const XNTD = await ethers.getContractFactory("XNTDToken");
     const xntd = await XNTD.deploy(await core.getAddress());
 
     const Stake = await ethers.getContractFactory("xEnchantedStake");
-    const stake = await Stake.deploy(await core.getAddress());
+    const stake = await Stake.deploy(await core.getAddress(), P.minStakeDays, P.maxStakeDays);
 
     const Forge = await ethers.getContractFactory("xEnchantedForge");
     const forge = await Forge.deploy(await core.getAddress(), await xntd.getAddress());

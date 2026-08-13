@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { ETHEREUM_PROTOCOL_PROFILE: P } = require("../scripts/lib/protocol-profiles");
 
 describe("Lens source-of-truth views", function () {
   async function deploy() {
@@ -15,14 +16,16 @@ describe("Lens source-of-truth views", function () {
     const core = await Core.deploy(
       await xen.getAddress(),
       initialNominal,
-      initialXenBurn
+      initialXenBurn,
+      P.halvingIntervalSeconds,
+      P.xenBurnHalvingIntervalSeconds
     );
 
     const XNTD = await ethers.getContractFactory("XNTDToken");
     const xntd = await XNTD.deploy(await core.getAddress());
 
     const Stake = await ethers.getContractFactory("xEnchantedStake");
-    const stake = await Stake.deploy(await core.getAddress());
+    const stake = await Stake.deploy(await core.getAddress(), P.minStakeDays, P.maxStakeDays);
 
     const Forge = await ethers.getContractFactory("xEnchantedForge");
     const forge = await Forge.deploy(await core.getAddress(), await xntd.getAddress());
@@ -72,13 +75,15 @@ describe("Lens source-of-truth views", function () {
   }
 
   it("NFTLens.getProtocolParams reads epoch and halving values from Core", async function () {
-    const { core, nftLens, initialNominal, initialXenBurn } = await deploy();
+    const { core, stake, nftLens, initialNominal, initialXenBurn } = await deploy();
 
     const p = await nftLens.getProtocolParams();
 
     expect(p.genesisTs).to.equal(await core.GENESIS_TS());
     expect(p.halvingInterval).to.equal(await core.HALVING_INTERVAL());
     expect(p.xenBurnHalvingInterval).to.equal(await core.XEN_BURN_HALVING_INTERVAL());
+    expect(p.minStakeDays).to.equal(await stake.MIN_DAYS());
+    expect(p.maxStakeDays).to.equal(await stake.MAX_DAYS());
     expect(p.currentEpoch).to.equal(await core.currentEpoch());
     expect(p.nextHalvingTs).to.equal(await core.nextHalvingTs());
 

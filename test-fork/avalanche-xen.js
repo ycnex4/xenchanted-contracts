@@ -8,7 +8,12 @@ const {
   AXEN_EXPECTED_DECIMALS,
   INITIAL_NOMINAL_TEXT,
   INITIAL_XEN_BURN_TEXT,
+  AVALANCHE_PROTOCOL_PROFILE,
 } = require("../scripts/lib/avalanche-mainnet");
+const {
+  coreConstructorArgs,
+  stakeConstructorArgs,
+} = require("../scripts/lib/protocol-profiles");
 
 // Snapshot source: Snowtrace aXEN holders page, checked 2026-08-13.
 // Override this with AVALANCHE_XEN_WHALE if the balance later moves.
@@ -68,13 +73,22 @@ describe("Avalanche mainnet fork - real aXEN integration", function () {
     const CoreTokenURILens = await ethers.getContractFactory("xEnchantedTokenURILens");
     const StakeTokenURILens = await ethers.getContractFactory("xEnchantedStakeTokenURILens");
 
-    const core = await Core.deploy(AXEN_MAINNET, initialNominal, initialXenBurn);
+    const core = await Core.deploy(
+      ...coreConstructorArgs(
+        AXEN_MAINNET,
+        initialNominal,
+        initialXenBurn,
+        AVALANCHE_PROTOCOL_PROFILE
+      )
+    );
     await core.waitForDeployment();
 
     const xntd = await XNTD.deploy(await core.getAddress());
     await xntd.waitForDeployment();
 
-    const stake = await Stake.deploy(await core.getAddress());
+    const stake = await Stake.deploy(
+      ...stakeConstructorArgs(await core.getAddress(), AVALANCHE_PROTOCOL_PROFILE)
+    );
     await stake.waitForDeployment();
 
     const forge = await Forge.deploy(await core.getAddress(), await xntd.getAddress());

@@ -6,7 +6,12 @@ const {
   AXEN_MAINNET,
   INITIAL_NOMINAL_TEXT,
   INITIAL_XEN_BURN_TEXT,
+  AVALANCHE_PROTOCOL_PROFILE,
 } = require("./lib/avalanche-mainnet");
+const {
+  coreConstructorArgs,
+  stakeConstructorArgs,
+} = require("./lib/protocol-profiles");
 
 const ADDR = {
   Core: process.env.CORE_ADDRESS || "",
@@ -55,9 +60,22 @@ async function main() {
   const initialNominal = ethers.parseEther(INITIAL_NOMINAL_TEXT);
   const initialXenBurn = ethers.parseEther(INITIAL_XEN_BURN_TEXT);
 
-  await verify("Core", ADDR.Core, [AXEN_MAINNET, initialNominal, initialXenBurn]);
+  await verify(
+    "Core",
+    ADDR.Core,
+    coreConstructorArgs(
+      AXEN_MAINNET,
+      initialNominal,
+      initialXenBurn,
+      AVALANCHE_PROTOCOL_PROFILE
+    )
+  );
   await verify("XNTD", ADDR.XNTD, [ADDR.Core]);
-  await verify("Stake", ADDR.Stake, [ADDR.Core]);
+  await verify(
+    "Stake",
+    ADDR.Stake,
+    stakeConstructorArgs(ADDR.Core, AVALANCHE_PROTOCOL_PROFILE)
+  );
   await verify("Forge", ADDR.Forge, [ADDR.Core, ADDR.XNTD]);
   await verify("Market", ADDR.Market, [ADDR.Core]);
   await verify("NFTLens", ADDR.NFTLens, [ADDR.Core, ADDR.Stake]);

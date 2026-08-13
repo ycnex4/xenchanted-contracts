@@ -36,13 +36,6 @@ interface ICoreTokenURILens {
  */
 contract xEnchantedNFT is ERC721, IBurnRedeemable {
     // PUBLIC CONSTANTS
-    // Protocol epochs use the 180-day halving interval for base nominal and
-    // all rules derived from currentBaseNominal(), including Forge bounds.
-    uint256 public constant HALVING_INTERVAL = 180 days;
-
-    // XEN burn decay is intentionally slower than protocol epochs. This affects
-    // only the XEN amount required to mint a Core L1 through mintWithXEN().
-    uint256 public constant XEN_BURN_HALVING_INTERVAL = 360 days;
     uint256 public constant ENCHANT_MULTIPLIER = 3;
     uint8   public constant MAX_LEVEL = 22;
 
@@ -56,6 +49,8 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
 
     uint256 public immutable INITIAL_NOMINAL;
     uint256 public immutable INITIAL_XEN_BURN;
+    uint256 public immutable HALVING_INTERVAL;
+    uint256 public immutable XEN_BURN_HALVING_INTERVAL;
 
     address public DEPLOYER;
 
@@ -181,22 +176,29 @@ contract xEnchantedNFT is ERC721, IBurnRedeemable {
     // CONSTRUCTOR
 
     /**
-     * @dev sets immutable XEN and genesis values for this deployment
+     * @dev sets immutable XEN, genesis values and economic clocks for this deployment
      */
     constructor(
         address xenToken,
         uint256 initialNominal,
-        uint256 initialXenBurn
+        uint256 initialXenBurn,
+        uint256 halvingInterval,
+        uint256 xenBurnHalvingInterval
     ) ERC721("xEnchanted Core", "xCORE") {
         require(xenToken != address(0), "XEN");
         require(initialNominal != 0, "NOM");
         require(initialXenBurn != 0, "XBR");
+        require(halvingInterval != 0, "HALV");
+        require(xenBurnHalvingInterval != 0, "XHALV");
+        require(xenBurnHalvingInterval >= halvingInterval, "XHALV_RANGE");
 
         XEN = IXENToken(xenToken);
         GENESIS_TS = uint64(block.timestamp);
 
         INITIAL_NOMINAL = initialNominal;
         INITIAL_XEN_BURN = initialXenBurn;
+        HALVING_INTERVAL = halvingInterval;
+        XEN_BURN_HALVING_INTERVAL = xenBurnHalvingInterval;
 
         DEPLOYER = msg.sender;
         _nextId = 1;
@@ -334,8 +336,8 @@ function _readAddr(address target, bytes memory data) internal view returns (add
     /**
      * @dev Returns the current XEN burn amount required to mint a Core L1.
      *
-     * XEN burn uses a separate 360-day halving index so the XEN entry cost
-     * decays more slowly than the 180-day protocol epoch/base nominal schedule.
+     * XEN burn uses a separate immutable halving interval so the XEN entry cost
+     * may decay more slowly than the protocol epoch/base nominal schedule.
      */
     function _xenBurnHalvingIndex() internal view returns (uint256 k) {
         if (block.timestamp > uint256(GENESIS_TS)) {
@@ -351,7 +353,7 @@ function _readAddr(address target, bytes memory data) internal view returns (add
      * @dev returns the current global base APR for staking in basis points
      */
     function baseAprBpsNow() public view returns (uint16) {
-        uint256 k = _halvingIndex(); // 180d epochs
+        uint256 k = _halvingIndex();
         uint256 dec = k * 100;       // -1% per epoch = -100 bps
         if (dec >= 800) return 200;  // min 2%
         return uint16(1000 - dec);   // 10% down to 2%

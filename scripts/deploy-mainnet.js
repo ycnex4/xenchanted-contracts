@@ -4,6 +4,11 @@ const ETHEREUM_MAINNET_CHAIN_ID = 1n;
 const XEN_MAINNET = "0x06450dEe7FD2Fb8E39061434BAbCFC05599a6Fb8";
 
 const REQUIRED_CONFIRMATION = "I_UNDERSTAND_THIS_DEPLOYS_TO_MAINNET";
+const {
+  ETHEREUM_PROTOCOL_PROFILE,
+  coreConstructorArgs,
+  stakeConstructorArgs,
+} = require("./lib/protocol-profiles");
 
 async function main() {
   if (process.env.MAINNET_DEPLOY_CONFIRM !== REQUIRED_CONFIRMATION) {
@@ -64,7 +69,14 @@ async function main() {
   // 1) Deploy Core with REAL XEN
   // -----------------------------
   const Core = await ethers.getContractFactory("xEnchantedNFT");
-  const core = await Core.deploy(XEN_MAINNET, INITIAL_NOMINAL, INITIAL_XEN_BURN);
+  const core = await Core.deploy(
+    ...coreConstructorArgs(
+      XEN_MAINNET,
+      INITIAL_NOMINAL,
+      INITIAL_XEN_BURN,
+      ETHEREUM_PROTOCOL_PROFILE
+    )
+  );
   await core.waitForDeployment();
   const coreAddr = await core.getAddress();
   console.log("Core deployed:", coreAddr);
@@ -82,7 +94,9 @@ async function main() {
   // 3) Deploy Stake
   // -----------------------------
   const Stake = await ethers.getContractFactory("xEnchantedStake");
-  const stake = await Stake.deploy(coreAddr);
+  const stake = await Stake.deploy(
+    ...stakeConstructorArgs(coreAddr, ETHEREUM_PROTOCOL_PROFILE)
+  );
   await stake.waitForDeployment();
   const stakeAddr = await stake.getAddress();
   console.log("Stake deployed:", stakeAddr);

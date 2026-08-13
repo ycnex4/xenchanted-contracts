@@ -21,8 +21,11 @@ The aXEN symbol matters. The Ethereum XEN deploy script expects `XEN`, while the
 Avalanche contract reports `aXEN`. Avalanche uses a separate metadata guard.
 
 The Solidity compiler remains `0.8.28` with `evmVersion: "cancun"`, optimizer
-enabled with 200 runs and `viaIR: true`. No production Solidity contract was
-changed for this readiness path.
+enabled with 200 runs and `viaIR: true`.
+
+The Core and Stake contracts now use constructor-set immutable time parameters.
+Ethereum and Avalanche therefore share one production implementation while
+preserving separately verified, permanently fixed deployment profiles.
 
 ## Deployment Model Encoded by the Script
 
@@ -32,12 +35,15 @@ The prepared script represents this proposed deployment model:
 - a fresh Avalanche `GENESIS_TS` set by the Core deployment block;
 - initial Core L1 nominal: `100 XNTD`;
 - initial Core L1 burn: `100,000,000 aXEN`;
+- Core nominal, Forge-bound and base-APR epoch: `60 days`;
+- aXEN burn halving interval: `120 days`;
+- Stake duration range: `10-240 days`;
 - a new Avalanche XNTD contract controlled only by the Avalanche Core;
 - no bridge mint authority and no multichain route activation in this deployment.
 
 This is not silently assumed at execution time. The mainnet script requires a
 separate `AVALANCHE_GENESIS_CONFIRM` phrase that explicitly names the fresh
-genesis and its values.
+genesis and all Avalanche-specific economic parameters.
 
 If Avalanche XNTD must instead be bridge-linked to Ethereum XNTD, the current
 production contracts and this deployment script are not sufficient. That is a
@@ -107,7 +113,14 @@ Deploys the full eight-contract topology plus both tokenURI wiring transactions
 and `Core.init()` on a local Avalanche mainnet fork. It reports per-transaction
 and total gas plus a sampled AVAX estimate. It sends no mainnet transaction.
 
-The 2026-08-13 run measured `18,171,361` total gas for all eleven transactions.
+With `AVALANCHE_PROFILE_LOCAL_ONLY=1`, the same deployment ceremony can be
+measured deterministically without an RPC. This validates deployment gas units
+and wiring topology but does not replace the final real-aXEN fork run or a fresh
+live fee quote.
+
+The pre-immutable-profile 2026-08-13 fork run measured `18,171,361` total gas.
+The immutable-profile local run measured `18,475,370` total gas for all eleven
+transactions. The final real-aXEN fork run remains required before deployment.
 The live read-only preflight sampled `62,184,122` wei gas price, which would imply
 about `0.00113 AVAX` at that instant. The Hardhat fork environment returned a
 higher internal fee quote and estimated about `0.0194 AVAX`. Gas units are the
@@ -149,7 +162,7 @@ Deployment additionally requires:
 ```text
 AVALANCHE_DEPLOYER_PRIVATE_KEY=<dedicated deployer key>
 AVALANCHE_DEPLOY_CONFIRM=I_UNDERSTAND_THIS_DEPLOYS_XC_TO_AVALANCHE_MAINNET
-AVALANCHE_GENESIS_CONFIRM=FRESH_AVALANCHE_GENESIS_100_XNTD_100M_AXEN
+AVALANCHE_GENESIS_CONFIRM=FRESH_AVALANCHE_GENESIS_100_XNTD_100M_AXEN_60D_120D_10D_240D
 AVALANCHE_INIT_CONFIRM=BURN_DEPLOYER_RIGHTS_AND_FINALIZE_AVALANCHE_WIRING
 AVALANCHE_CONFIRMATIONS=3
 ```
@@ -176,8 +189,8 @@ Use `npm ci`, not an unconstrained dependency refresh, for the reviewed lockfile
 
 ## Remaining Mainnet Blockers
 
-- approve the fresh Avalanche genesis model;
-- approve separate chain-native Avalanche XNTD and bridge exclusion;
+- complete the contract/profile refactor regression checkpoint;
+- prepare and fully test the Avalanche frontend before genesis;
 - refresh the Avalanche fork test against the final deployment commit;
 - rerun bytecode size, gas profile and Slither on the final commit;
 - review and reduce the npm deployment-toolchain vulnerability surface;

@@ -4,15 +4,23 @@ Status
 
 
 
-Current contract refactor checkpoint is stable.
+Current immutable multichain profile refactor is under final verification.
 
 
 
-Latest confirmed local test suite: 105 passing.
+Latest confirmed local test suite: 121 passing.
 
-Latest confirmed mainnet fork XEN integration test: 2 passing.
+The previous real-XEN fork baseline passed 2 tests. The final Ethereum and
+Avalanche fork reruns remain required after the immutable-profile diff is fixed.
 
-Working tree after checkpoint: nothing to commit, working tree clean.
+No mainnet deployment was executed by the profile refactor.
+
+Current deployment profiles:
+
+- Ethereum: 180-day epoch/base-APR decay, 360-day XEN burn halving, Stake 30-730 days;
+- Avalanche: 60-day epoch/base-APR decay, 120-day aXEN burn halving, Stake 10-240 days;
+- both profiles keep initial nominal 100 XNTD and initial burn 100,000,000 XEN/aXEN;
+- the values are constructor-set immutables and have no admin mutation path.
 
 Current post-XEN-burn-halving Sepolia deployment update:
 

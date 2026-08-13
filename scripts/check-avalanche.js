@@ -9,6 +9,7 @@ const {
   AXEN_EXPECTED_DECIMALS,
   INITIAL_NOMINAL_TEXT,
   INITIAL_XEN_BURN_TEXT,
+  AVALANCHE_PROTOCOL_PROFILE,
 } = require("./lib/avalanche-mainnet");
 
 const ZERO = ethers.ZeroAddress;
@@ -165,11 +166,25 @@ async function main() {
     await core.INITIAL_XEN_BURN(),
     ethers.parseEther(INITIAL_XEN_BURN_TEXT)
   );
-  assertBigInt("Core.HALVING_INTERVAL", await core.HALVING_INTERVAL(), 180n * 24n * 60n * 60n);
+  assertBigInt(
+    "Core.HALVING_INTERVAL",
+    await core.HALVING_INTERVAL(),
+    BigInt(AVALANCHE_PROTOCOL_PROFILE.halvingIntervalSeconds)
+  );
   assertBigInt(
     "Core.XEN_BURN_HALVING_INTERVAL",
     await core.XEN_BURN_HALVING_INTERVAL(),
-    360n * 24n * 60n * 60n
+    BigInt(AVALANCHE_PROTOCOL_PROFILE.xenBurnHalvingIntervalSeconds)
+  );
+  assertBigInt(
+    "Stake.MIN_DAYS",
+    await stake.MIN_DAYS(),
+    BigInt(AVALANCHE_PROTOCOL_PROFILE.minStakeDays)
+  );
+  assertBigInt(
+    "Stake.MAX_DAYS",
+    await stake.MAX_DAYS(),
+    BigInt(AVALANCHE_PROTOCOL_PROFILE.maxStakeDays)
   );
 
   const latestBlock = await ethers.provider.getBlock("latest");

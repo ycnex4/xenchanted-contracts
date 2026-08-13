@@ -33,6 +33,11 @@ The deployment script checks real XEN metadata before deploying Core:
 
 Core must be deployed with this XEN address as immutable constructor input.
 
+The canonical Ethereum deployment profile is also passed through immutable
+constructor inputs: a `180-day` Core/base-APR epoch, `360-day` XEN burn halving,
+and a `30-730 day` Stake range. Avalanche uses a separate profile without
+duplicating the contract implementation.
+
 ## Prepared Scripts
 
 ### scripts/deploy-mainnet.js
@@ -89,6 +94,10 @@ Checks include:
 - Market.activeListingCount == 0;
 - Market.nextListingId == 1;
 - Lens source addresses.
+- Core.HALVING_INTERVAL == 180 days;
+- Core.XEN_BURN_HALVING_INTERVAL == 360 days;
+- Stake.MIN_DAYS == 30;
+- Stake.MAX_DAYS == 730.
 
 ## Mainnet Deployment Command Shape
 

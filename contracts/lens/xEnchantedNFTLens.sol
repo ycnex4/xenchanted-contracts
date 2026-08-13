@@ -94,6 +94,10 @@ interface IxEnchantedNFTRead {
 }
 
 interface IxEnchantedStakeRead {
+    function MIN_DAYS() external view returns (uint16);
+
+    function MAX_DAYS() external view returns (uint16);
+
     function previewStakeAPRBreakdown(
         uint256 id
     )
@@ -148,6 +152,8 @@ contract xEnchantedNFTLens {
         uint256 enchantMultiplier;
         uint8 maxLevel;
         uint16 baseAprBpsNow;
+        uint16 minStakeDays;
+        uint16 maxStakeDays;
         uint256 bpsDenom;
         uint256 earlyPenaltyBps;
         uint256 maxWalletNfts;
@@ -201,6 +207,8 @@ contract xEnchantedNFTLens {
                 enchantMultiplier: CORE.ENCHANT_MULTIPLIER(),
                 maxLevel: CORE.MAX_LEVEL(),
                 baseAprBpsNow: CORE.baseAprBpsNow(),
+                minStakeDays: STAKE.MIN_DAYS(),
+                maxStakeDays: STAKE.MAX_DAYS(),
                 bpsDenom: CORE.BPS_DENOM(),
                 earlyPenaltyBps: CORE.EARLY_PENALTY_BPS(),
                 maxWalletNfts: CORE.MAX_WALLET_NFTS()

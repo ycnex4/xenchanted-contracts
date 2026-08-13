@@ -12,10 +12,15 @@ const {
   AXEN_EXPECTED_DECIMALS,
   INITIAL_NOMINAL_TEXT,
   INITIAL_XEN_BURN_TEXT,
+  AVALANCHE_PROTOCOL_PROFILE,
   DEPLOY_CONFIRMATION,
   GENESIS_CONFIRMATION,
   INIT_CONFIRMATION,
 } = require("./lib/avalanche-mainnet");
+const {
+  coreConstructorArgs,
+  stakeConstructorArgs,
+} = require("./lib/protocol-profiles");
 
 function requireConfirmation(envName, expected) {
   if (process.env[envName] !== expected) {
@@ -69,7 +74,7 @@ function createManifest(source, deployer, confirmations) {
   }
 
   const manifest = {
-    schema: "xc-avalanche-deployment-v1",
+    schema: "xc-avalanche-deployment-v2",
     status: "preflight-passed",
     startedAt: new Date().toISOString(),
     source,
@@ -87,6 +92,12 @@ function createManifest(source, deployer, confirmations) {
       mode: "fresh-avalanche-genesis",
       initialNominalXNTD: INITIAL_NOMINAL_TEXT,
       initialXenBurnAXEN: INITIAL_XEN_BURN_TEXT,
+      halvingIntervalSeconds:
+        AVALANCHE_PROTOCOL_PROFILE.halvingIntervalSeconds,
+      xenBurnHalvingIntervalSeconds:
+        AVALANCHE_PROTOCOL_PROFILE.xenBurnHalvingIntervalSeconds,
+      minStakeDays: AVALANCHE_PROTOCOL_PROFILE.minStakeDays,
+      maxStakeDays: AVALANCHE_PROTOCOL_PROFILE.maxStakeDays,
     },
     contracts: {},
     transactions: [],
@@ -155,6 +166,12 @@ function same(a, b) {
 
 function requireSame(label, actual, expected) {
   if (!same(actual, expected)) {
+    throw new Error(`${label} mismatch: actual=${actual}, expected=${expected}`);
+  }
+}
+
+function requireBigInt(label, actual, expected) {
+  if (actual !== expected) {
     throw new Error(`${label} mismatch: actual=${actual}, expected=${expected}`);
   }
 }
@@ -230,6 +247,12 @@ async function main() {
     AVALANCHE_NATIVE_SYMBOL
   );
   console.log("aXEN:", AXEN_MAINNET);
+  console.log(
+    "Protocol profile:",
+    `${AVALANCHE_PROTOCOL_PROFILE.halvingIntervalSeconds}s / ` +
+      `${AVALANCHE_PROTOCOL_PROFILE.xenBurnHalvingIntervalSeconds}s / ` +
+      `${AVALANCHE_PROTOCOL_PROFILE.minStakeDays}-${AVALANCHE_PROTOCOL_PROFILE.maxStakeDays} stake days`
+  );
   console.log("Confirmations per transaction:", confirmations.toString());
 
   const state = createManifest(source, deployer.address, confirmations);
@@ -242,7 +265,12 @@ async function main() {
   const core = await deployAndRecord(
     "Core",
     await ethers.getContractFactory("xEnchantedNFT"),
-    [AXEN_MAINNET, initialNominal, initialXenBurn],
+    coreConstructorArgs(
+      AXEN_MAINNET,
+      initialNominal,
+      initialXenBurn,
+      AVALANCHE_PROTOCOL_PROFILE
+    ),
     state
   );
   const coreAddress = await core.getAddress();
@@ -258,7 +286,7 @@ async function main() {
   const stake = await deployAndRecord(
     "Stake",
     await ethers.getContractFactory("xEnchantedStake"),
-    [coreAddress],
+    stakeConstructorArgs(coreAddress, AVALANCHE_PROTOCOL_PROFILE),
     state
   );
   const stakeAddress = await stake.getAddress();
@@ -319,8 +347,30 @@ async function main() {
   // Explicit pre-init handshake. Core.init() repeats the critical checks on-chain,
   // but this phase makes a wrong deployment manifest visible before rights burn.
   requireSame("Core.XEN", await core.XEN(), AXEN_MAINNET);
+  requireBigInt("Core.INITIAL_NOMINAL", await core.INITIAL_NOMINAL(), initialNominal);
+  requireBigInt("Core.INITIAL_XEN_BURN", await core.INITIAL_XEN_BURN(), initialXenBurn);
+  requireBigInt(
+    "Core.HALVING_INTERVAL",
+    await core.HALVING_INTERVAL(),
+    BigInt(AVALANCHE_PROTOCOL_PROFILE.halvingIntervalSeconds)
+  );
+  requireBigInt(
+    "Core.XEN_BURN_HALVING_INTERVAL",
+    await core.XEN_BURN_HALVING_INTERVAL(),
+    BigInt(AVALANCHE_PROTOCOL_PROFILE.xenBurnHalvingIntervalSeconds)
+  );
   requireSame("XNTD.CORE", await xntd.CORE(), coreAddress);
   requireSame("Stake.CORE", await stake.CORE(), coreAddress);
+  requireBigInt(
+    "Stake.MIN_DAYS",
+    await stake.MIN_DAYS(),
+    BigInt(AVALANCHE_PROTOCOL_PROFILE.minStakeDays)
+  );
+  requireBigInt(
+    "Stake.MAX_DAYS",
+    await stake.MAX_DAYS(),
+    BigInt(AVALANCHE_PROTOCOL_PROFILE.maxStakeDays)
+  );
   requireSame("Forge.CORE", await forge.CORE(), coreAddress);
   requireSame("Forge.XNTD", await forge.XNTD(), xntdAddress);
   requireSame("Market.CORE", await market.CORE(), coreAddress);

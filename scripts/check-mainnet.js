@@ -3,6 +3,7 @@ const { ethers } = require("hardhat");
 const ZERO = ethers.ZeroAddress;
 const ETHEREUM_MAINNET_CHAIN_ID = 1n;
 const XEN_MAINNET = "0x06450dEe7FD2Fb8E39061434BAbCFC05599a6Fb8";
+const { ETHEREUM_PROTOCOL_PROFILE: P } = require("./lib/protocol-profiles");
 
 const ADDR = {
   Core: process.env.CORE_ADDRESS || "",
@@ -168,6 +169,28 @@ async function main() {
   assertEq("StakeTokenURILens.STAKE", await stakeTokenUriLens.STAKE(), ADDR.Stake);
 
   console.log("\n=== PROTOCOL PARAMETER CHECK ===");
+  assertBigIntEq(
+    "Core.INITIAL_NOMINAL",
+    await core.INITIAL_NOMINAL(),
+    ethers.parseEther("100")
+  );
+  assertBigIntEq(
+    "Core.INITIAL_XEN_BURN",
+    await core.INITIAL_XEN_BURN(),
+    ethers.parseEther("100000000")
+  );
+  assertBigIntEq(
+    "Core.HALVING_INTERVAL",
+    await core.HALVING_INTERVAL(),
+    BigInt(P.halvingIntervalSeconds)
+  );
+  assertBigIntEq(
+    "Core.XEN_BURN_HALVING_INTERVAL",
+    await core.XEN_BURN_HALVING_INTERVAL(),
+    BigInt(P.xenBurnHalvingIntervalSeconds)
+  );
+  assertBigIntEq("Stake.MIN_DAYS", await stake.MIN_DAYS(), BigInt(P.minStakeDays));
+  assertBigIntEq("Stake.MAX_DAYS", await stake.MAX_DAYS(), BigInt(P.maxStakeDays));
   console.log("Core.INITIAL_NOMINAL:", ethers.formatEther(await core.INITIAL_NOMINAL()), "XNTD");
   console.log("Core.INITIAL_XEN_BURN:", ethers.formatEther(await core.INITIAL_XEN_BURN()), "XEN");
   console.log("Core.GENESIS_TS:", (await core.GENESIS_TS()).toString());
