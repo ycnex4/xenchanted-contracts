@@ -214,12 +214,38 @@ npm run verify:avalanche
 Do not run `npm run deploy:avalanche` until deployment is explicitly approved.
 Use `npm ci`, not an unconstrained dependency refresh, for the reviewed lockfile.
 
+## Independent Review and Recovery Follow-up
+
+Theo completed an independent technical review of reviewed commit
+`d68a627b3d0b7ed118b1ab81df84bd8196503cf7`. The review covered the Avalanche
+constructor profile, real-aXEN integration, irreversible Core/Stake wiring,
+partial-deployment risk and contract security controls.
+
+This is an independent technical review checkpoint, not a professional audit or
+formal verification.
+
+The review verdict was `GO_WITH_CONDITIONS`. Follow-up work closes the two
+technical conditions before a live deployment:
+
+- the real-aXEN fork test now proves not only successful Core minting, but also
+  the exact aXEN balance, allowance and total-supply reduction caused by the
+  production `burn(address,uint256)` flow;
+- `test/avalanche.deployment-recovery.js` tests manual completion from recorded
+  addresses after both lens transactions and before `Core.init()`;
+- `docs/avalanche-partial-deployment-recovery.md` defines stop, classify,
+  handshake, recovery and abandonment rules for every partial-deployment state.
+
+The production Solidity contracts and Avalanche economic parameters were not
+changed by this follow-up. After merge, the resulting new main commit becomes
+the only valid source checkpoint for deployment and all final tests, fork tests,
+gas profiling and live preflight must be repeated against it.
+
 ## Remaining Mainnet Blockers
 
 - prepare and fully test the Avalanche frontend before genesis;
 - review and reduce the npm deployment-toolchain vulnerability surface;
 - independently review the deploy and check scripts;
-- complete external audit or explicitly record the decision to deploy without it;
+- explicitly record the decision to deploy with independent technical review but without a professional external audit;
 - refresh live fee data and approve the AVAX deployment budget with margin;
 - verify source code through the current Avalanche explorer flow;
 - update frontend network configuration, addresses, ABI and native-currency labels;

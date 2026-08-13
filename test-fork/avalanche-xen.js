@@ -116,11 +116,14 @@ describe("Avalanche mainnet fork - real aXEN integration", function () {
         "function transfer(address to, uint256 amount) returns (bool)",
         "function approve(address spender, uint256 amount) returns (bool)",
         "function allowance(address owner, address spender) view returns (uint256)",
+        "function totalSupply() view returns (uint256)",
       ],
       AXEN_MAINNET
     );
 
     const xenAmount = await core.currentXenBurnAmount();
+    const totalSupplyBeforeBurn = await axen.totalSupply();
+
     expect(await axen.balanceOf(axenWhale)).to.be.gte(
       xenAmount,
       "Configured aXEN whale does not have enough aXEN"
@@ -139,9 +142,14 @@ describe("Avalanche mainnet fork - real aXEN integration", function () {
     await (await axen.connect(whaleSigner).transfer(user.address, xenAmount)).wait();
     await (await axen.connect(user).approve(await core.getAddress(), xenAmount)).wait();
 
+    expect(await axen.balanceOf(user.address)).to.equal(xenAmount);
     expect(await axen.allowance(user.address, await core.getAddress())).to.be.gte(xenAmount);
+
     await expect(core.connect(user).mintWithXEN()).to.not.be.reverted;
 
+    expect(await axen.balanceOf(user.address)).to.equal(0n);
+    expect(await axen.totalSupply()).to.equal(totalSupplyBeforeBurn - xenAmount);
+    expect(await axen.allowance(user.address, await core.getAddress())).to.equal(0n);
     expect(await core.balanceOf(user.address)).to.equal(1n);
     const data = await core.nftData(1);
     expect(data.level).to.equal(1);
