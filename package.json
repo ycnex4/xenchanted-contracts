@@ -4,7 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "hardhat test",
+    "test:fork:ethereum": "hardhat test test-fork/mainnet-xen.js",
+    "test:fork:avalanche": "hardhat test test-fork/avalanche-xen.js",
+    "profile:deploy:avalanche": "hardhat run scripts/profile-avalanche-deployment-gas.js",
+    "preflight:avalanche": "hardhat run scripts/preflight-avalanche.js --network avalanche",
+    "deploy:avalanche": "hardhat run scripts/deploy-avalanche.js --network avalanche",
+    "check:avalanche": "hardhat run scripts/check-avalanche.js --network avalanche",
+    "verify:avalanche": "hardhat run scripts/verify-avalanche.js --network avalanche"
   },
   "keywords": [],
   "author": "",

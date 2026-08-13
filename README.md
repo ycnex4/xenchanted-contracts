@@ -46,14 +46,16 @@ Main flows:
 
 Latest confirmed results:
 
-    Local Hardhat tests: 105 passing
+    Local Hardhat tests: 123 passing
     Mainnet fork real XEN integration test: 2 passing
-    Slither high issues: 0
+    Avalanche fork real aXEN integration test: 2 passing
+    Slither 0.11.5 production findings: 97 (High: 0)
     Bytecode size check: all production contracts below 24KB
 
 Security documentation:
 
 - [Production audit checkpoint](docs/production-audit-checkpoint.md)
+- [Avalanche C-Chain deployment readiness](docs/avalanche-deployment-readiness.md)
 - [Slither triage](docs/security/slither-triage.md)
 - [Real XEN mainnet fork validation](docs/security/mainnet-fork-xen.md)
 - [External review follow-ups](docs/security/external-review-followups.md)
@@ -82,11 +84,24 @@ This repository has undergone internal review, static analysis triage, local tes
 
 Slither 0.11.5 was run against production contracts with mocks, tests, cache, artifacts, and dependencies filtered out.
 
-Summary:
+Historical post-Theo hardening summary:
 
     Initial production-filtered Slither result: 111 findings
-    Final production-filtered Slither result: 81 findings
-    Final high issues: 0
+    Post-hardening production-filtered result: 81 findings
+    Post-hardening high issues: 0
+
+Latest immutable multichain profile checkpoint:
+
+    Production findings: 97
+    High: 0
+    Medium: 19
+    Low: 18
+    Informational: 60
+    Optimization: 0
+
+The current Medium categories are the previously documented deterministic
+rounding, invariant equality, guarded/trusted-call reentrancy patterns and
+unused tuple components. Test-only mock findings are excluded from this count.
 
 Findings were either remediated or manually triaged in:
 
@@ -143,7 +158,7 @@ Details:
 
 ## Install
 
-    npm install
+    npm ci
 
 ## Run Local Tests
 
@@ -151,7 +166,7 @@ Details:
 
 Expected current result:
 
-    105 passing
+    123 passing
 
 ## Run Real XEN Mainnet Fork Test
 

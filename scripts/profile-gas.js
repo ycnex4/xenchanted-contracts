@@ -2,6 +2,11 @@
 
 const DAY = 24 * 60 * 60;
 const HIGH_LEVEL = Number(process.env.PROFILE_HIGH_LEVEL || "6");
+const {
+  ETHEREUM_PROTOCOL_PROFILE,
+  coreConstructorArgs,
+  stakeConstructorArgs,
+} = require("./lib/protocol-profiles");
 
 async function main() {
   const [deployer, alice, bob, carol] = await ethers.getSigners();
@@ -46,7 +51,14 @@ async function main() {
   await xen.waitForDeployment();
 
   const Core = await ethers.getContractFactory("xEnchantedNFT");
-  const core = await Core.deploy(await xen.getAddress(), INITIAL_NOMINAL, INITIAL_XEN_BURN);
+  const core = await Core.deploy(
+    ...coreConstructorArgs(
+      await xen.getAddress(),
+      INITIAL_NOMINAL,
+      INITIAL_XEN_BURN,
+      ETHEREUM_PROTOCOL_PROFILE
+    )
+  );
   await core.waitForDeployment();
 
   const XNTD = await ethers.getContractFactory("XNTDToken");
@@ -54,7 +66,9 @@ async function main() {
   await xntd.waitForDeployment();
 
   const Stake = await ethers.getContractFactory("xEnchantedStake");
-  const stake = await Stake.deploy(await core.getAddress());
+  const stake = await Stake.deploy(
+    ...stakeConstructorArgs(await core.getAddress(), ETHEREUM_PROTOCOL_PROFILE)
+  );
   await stake.waitForDeployment();
 
   const Forge = await ethers.getContractFactory("xEnchantedForge");

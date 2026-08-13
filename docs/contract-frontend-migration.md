@@ -335,16 +335,22 @@ currentXenBurnAmount
 enchantMultiplier
 maxLevel
 baseAprBpsNow
+minStakeDays
+maxStakeDays
 bpsDenom
 earlyPenaltyBps
 maxWalletNfts
 ```
 
-Protocol halving note:
+Protocol profile note:
 
-- `halvingInterval` remains the 180-day protocol epoch interval used for `currentEpoch`, `currentBaseNominal`, `nextHalvingTs`, and rules derived from `currentBaseNominal` such as Forge bounds.
-- `xenBurnHalvingInterval` is a separate 360-day interval used only by `currentXenBurnAmount`.
+- Ethereum uses `halvingInterval = 180 days`, `xenBurnHalvingInterval = 360 days`, and Stake `30-730 days`.
+- Avalanche uses `halvingInterval = 60 days`, `xenBurnHalvingInterval = 120 days`, and Stake `10-240 days`.
+- `halvingInterval` controls `currentEpoch`, `currentBaseNominal`, `nextHalvingTs`, base APR decay and rules derived from `currentBaseNominal` such as Forge bounds.
+- `xenBurnHalvingInterval` is used only by `currentXenBurnAmount`.
+- `minStakeDays` and `maxStakeDays` come from the immutable Stake deployment profile.
 - Frontend code must not assume that XEN burn decay and protocol/base nominal decay use the same interval.
+- Frontend validation must read these on-chain values instead of selecting limits from the connected chain ID alone.
 
 ## 12. Enchant preview truth
 

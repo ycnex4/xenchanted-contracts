@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { ETHEREUM_PROTOCOL_PROFILE: P } = require("../scripts/lib/protocol-profiles");
 
 describe("Reentrancy triage for intentional CEI deviations", function () {
   async function deployCoreWithXen(xenFactoryName = "MockXEN") {
@@ -16,13 +17,15 @@ describe("Reentrancy triage for intentional CEI deviations", function () {
       await xen.getAddress(),
       initialNominal,
       initialXenBurn,
+      P.halvingIntervalSeconds,
+      P.xenBurnHalvingIntervalSeconds,
     );
 
     const XNTD = await ethers.getContractFactory("XNTDToken");
     const xntd = await XNTD.deploy(await core.getAddress());
 
     const Stake = await ethers.getContractFactory("xEnchantedStake");
-    const stake = await Stake.deploy(await core.getAddress());
+    const stake = await Stake.deploy(await core.getAddress(), P.minStakeDays, P.maxStakeDays);
 
     const Forge = await ethers.getContractFactory("xEnchantedForge");
     const forge = await Forge.deploy(
@@ -98,7 +101,7 @@ describe("Reentrancy triage for intentional CEI deviations", function () {
     const core = await ReentrantStakeCore.deploy();
 
     const Stake = await ethers.getContractFactory("xEnchantedStake");
-    const stake = await Stake.deploy(await core.getAddress());
+    const stake = await Stake.deploy(await core.getAddress(), P.minStakeDays, P.maxStakeDays);
 
     await core.setStakeTarget(await stake.getAddress());
     await core.setReentryTokenId(2);

@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
+const { ETHEREUM_PROTOCOL_PROFILE: P } = require("../scripts/lib/protocol-profiles");
 
 const DAY = 24 * 60 * 60;
 const PROTOCOL_HALVING = 180 * DAY;
@@ -17,7 +18,9 @@ async function deployFixture() {
   const core = await Core.deploy(
     await xen.getAddress(),
     initialNominal,
-    initialXenBurn
+    initialXenBurn,
+    P.halvingIntervalSeconds,
+    P.xenBurnHalvingIntervalSeconds
   );
   await core.waitForDeployment();
 

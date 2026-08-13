@@ -2,6 +2,11 @@ const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
 
 const XEN_MAINNET = "0x06450dEe7FD2Fb8E39061434BAbCFC05599a6Fb8";
+const {
+  ETHEREUM_PROTOCOL_PROFILE,
+  coreConstructorArgs,
+  stakeConstructorArgs,
+} = require("../scripts/lib/protocol-profiles");
 
 describe("Mainnet fork - real XEN integration", function () {
   before(async function () {
@@ -58,13 +63,24 @@ describe("Mainnet fork - real XEN integration", function () {
     const CoreTokenURILens = await ethers.getContractFactory("xEnchantedTokenURILens");
     const StakeTokenURILens = await ethers.getContractFactory("xEnchantedStakeTokenURILens");
 
-    const core = await Core.deploy(XEN_MAINNET, initialNominal, initialXenBurn, fee);
+    const core = await Core.deploy(
+      ...coreConstructorArgs(
+        XEN_MAINNET,
+        initialNominal,
+        initialXenBurn,
+        ETHEREUM_PROTOCOL_PROFILE
+      ),
+      fee
+    );
     await core.waitForDeployment();
 
     const xntd = await XNTD.deploy(await core.getAddress(), fee);
     await xntd.waitForDeployment();
 
-    const stake = await Stake.deploy(await core.getAddress(), fee);
+    const stake = await Stake.deploy(
+      ...stakeConstructorArgs(await core.getAddress(), ETHEREUM_PROTOCOL_PROFILE),
+      fee
+    );
     await stake.waitForDeployment();
 
     const forge = await Forge.deploy(await core.getAddress(), await xntd.getAddress(), fee);

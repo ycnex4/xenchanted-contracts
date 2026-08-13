@@ -114,10 +114,10 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
     mapping(address => uint256[]) private _ownerTokenIds;
     mapping(uint256 => uint256) private _ownerTokenIndex;
 
-    // PUBLIC CONSTANTS
+    // IMMUTABLE DEPLOYMENT PARAMETERS
 
-    uint16 public constant MIN_DAYS = 30;
-    uint16 public constant MAX_DAYS = 730;
+    uint16 public immutable MIN_DAYS;
+    uint16 public immutable MAX_DAYS;
 
     uint256 public constant BPS_DENOM = 10_000;
     uint16 public constant LEVEL_BONUS_STEP_BPS = 100;
@@ -157,9 +157,14 @@ contract xEnchantedStake is ERC721, ReentrancyGuard {
 
     // CONSTRUCTOR
 
-    constructor(address core) ERC721("xEnchanted Stake", "xSTAKE") {
+    constructor(address core, uint16 minDays, uint16 maxDays) ERC721("xEnchanted Stake", "xSTAKE") {
         require(core != address(0), "C0");
+        require(minDays != 0, "MIN0");
+        require(maxDays >= minDays, "DUR_RANGE");
+        require(uint256(maxDays) * 1 days <= type(uint32).max, "DUR32");
         CORE = IxEnchantedNFT(core);
+        MIN_DAYS = minDays;
+        MAX_DAYS = maxDays;
         DEPLOYER = msg.sender;
     }
 

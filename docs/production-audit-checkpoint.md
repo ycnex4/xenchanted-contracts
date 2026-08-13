@@ -4,15 +4,43 @@ Status
 
 
 
-Current contract refactor checkpoint is stable.
+The Avalanche immutable multichain contract/profile regression checkpoint is
+complete on the published deployment-readiness commit.
 
 
 
-Latest confirmed local test suite: 105 passing.
+Latest confirmed local test suite: 123 passing.
 
-Latest confirmed mainnet fork XEN integration test: 2 passing.
+The final Avalanche real-aXEN fork run passed 2 tests, including
+`Core.mintWithXEN()` against the production aXEN burn callback. The final
+Ethereum real-XEN immutable-profile fork run also passed 2 tests, including
+`Core.mintWithXEN()` against the production Ethereum XEN burn flow.
 
-Working tree after checkpoint: nothing to commit, working tree clean.
+Latest Avalanche deployment-readiness checks:
+
+- read-only C-Chain preflight passed at chain ID 43114;
+- full local suite passed with 123 tests;
+- real-aXEN fork integration passed with 2 tests;
+- real Ethereum XEN regression fork passed with 2 tests;
+- eleven-transaction deployment ceremony simulation used 18,478,023 gas;
+- all eight production contracts remain below the 24,576-byte deployed-code limit;
+- Slither 0.11.5 production-only result: 97 findings (0 high, 19 medium,
+  18 low, 60 informational, 0 optimization), all in previously documented
+  categories;
+- `npm audit --omit=dev` reported zero vulnerabilities;
+- checked toolchain: Node.js 24.10.0, npm 11.6.1 and Hardhat 2.28.6.
+- Avalanche post-deploy and verification addresses are isolated under
+  `AVALANCHE_*_ADDRESS` variables, and the deploy script requires an exact
+  reviewed `AVALANCHE_SOURCE_COMMIT` match before the first transaction.
+
+No mainnet deployment was executed by the profile refactor.
+
+Current deployment profiles:
+
+- Ethereum: 180-day epoch/base-APR decay, 360-day XEN burn halving, Stake 30-730 days;
+- Avalanche: 60-day epoch/base-APR decay, 120-day aXEN burn halving, Stake 10-240 days;
+- both profiles keep initial nominal 100 XNTD and initial burn 100,000,000 XEN/aXEN;
+- the values are constructor-set immutables and have no admin mutation path.
 
 Current post-XEN-burn-halving Sepolia deployment update:
 
@@ -224,13 +252,13 @@ This document is not an independent third-party audit and is not formal verifica
 
 It is an internal smart contract security and protocol integrity review checkpoint supported by additional static analysis, local tests, and mainnet fork integration testing.
 
-Security hardening completed after review feedback:
+Historical security hardening completed after review feedback:
 
 Slither 0.11.5 production-filtered static analysis was run.
 
 Initial production-filtered Slither result: 111 findings.
 
-Final production-filtered Slither result: 81 findings.
+Post-hardening production-filtered Slither result: 81 findings.
 
 Final Slither high issues: 0.
 
