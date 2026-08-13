@@ -12,15 +12,16 @@ complete on the published deployment-readiness commit.
 Latest confirmed local test suite: 121 passing.
 
 The final Avalanche real-aXEN fork run passed 2 tests, including
-`Core.mintWithXEN()` against the production aXEN burn callback. The Ethereum
-real-XEN fork baseline previously passed 2 tests; its final immutable-profile
-rerun remains required before this shared refactor is merged.
+`Core.mintWithXEN()` against the production aXEN burn callback. The final
+Ethereum real-XEN immutable-profile fork run also passed 2 tests, including
+`Core.mintWithXEN()` against the production Ethereum XEN burn flow.
 
 Latest Avalanche deployment-readiness checks:
 
 - read-only C-Chain preflight passed at chain ID 43114;
 - full local suite passed with 121 tests;
 - real-aXEN fork integration passed with 2 tests;
+- real Ethereum XEN regression fork passed with 2 tests;
 - eleven-transaction deployment ceremony simulation used 18,478,023 gas;
 - all eight production contracts remain below the 24,576-byte deployed-code limit;
 - Slither 0.11.5 production-only result: 97 findings (0 high, 19 medium,

@@ -171,6 +171,12 @@ Never commit or print the RPC credentials or private key. The deployment key
 must be dedicated to this operation and funded only with the AVAX required for
 the reviewed deployment budget.
 
+Hardhat loads `.env` through `dotenv`. Under WSL, do not run `source .env` for
+this project: a Windows CRLF file can export trailing carriage returns, and
+already-exported shell variables take precedence over values parsed by
+`dotenv`. If `.env` was sourced accidentally, open a fresh shell or `unset` the
+affected RPC, holder and private-key variables before running Hardhat.
+
 ## Commands
 
 ```text
