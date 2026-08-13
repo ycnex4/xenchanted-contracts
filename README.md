@@ -46,14 +46,16 @@ Main flows:
 
 Latest confirmed results:
 
-    Local Hardhat tests: 105 passing
+    Local Hardhat tests: 115 passing
     Mainnet fork real XEN integration test: 2 passing
+    Avalanche fork real aXEN integration test: 2 passing
     Slither high issues: 0
     Bytecode size check: all production contracts below 24KB
 
 Security documentation:
 
 - [Production audit checkpoint](docs/production-audit-checkpoint.md)
+- [Avalanche C-Chain deployment readiness](docs/avalanche-deployment-readiness.md)
 - [Slither triage](docs/security/slither-triage.md)
 - [Real XEN mainnet fork validation](docs/security/mainnet-fork-xen.md)
 - [External review follow-ups](docs/security/external-review-followups.md)
@@ -143,7 +145,7 @@ Details:
 
 ## Install
 
-    npm install
+    npm ci
 
 ## Run Local Tests
 
@@ -151,7 +153,7 @@ Details:
 
 Expected current result:
 
-    105 passing
+    115 passing
 
 ## Run Real XEN Mainnet Fork Test
 
