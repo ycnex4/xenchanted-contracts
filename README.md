@@ -46,10 +46,10 @@ Main flows:
 
 Latest confirmed results:
 
-    Local Hardhat tests: 115 passing
+    Local Hardhat tests: 121 passing
     Mainnet fork real XEN integration test: 2 passing
     Avalanche fork real aXEN integration test: 2 passing
-    Slither high issues: 0
+    Slither 0.11.5 production findings: 97 (High: 0)
     Bytecode size check: all production contracts below 24KB
 
 Security documentation:
@@ -84,11 +84,24 @@ This repository has undergone internal review, static analysis triage, local tes
 
 Slither 0.11.5 was run against production contracts with mocks, tests, cache, artifacts, and dependencies filtered out.
 
-Summary:
+Historical post-Theo hardening summary:
 
     Initial production-filtered Slither result: 111 findings
-    Final production-filtered Slither result: 81 findings
-    Final high issues: 0
+    Post-hardening production-filtered result: 81 findings
+    Post-hardening high issues: 0
+
+Latest immutable multichain profile checkpoint:
+
+    Production findings: 97
+    High: 0
+    Medium: 19
+    Low: 18
+    Informational: 60
+    Optimization: 0
+
+The current Medium categories are the previously documented deterministic
+rounding, invariant equality, guarded/trusted-call reentrancy patterns and
+unused tuple components. Test-only mock findings are excluded from this count.
 
 Findings were either remediated or manually triaged in:
 
@@ -153,7 +166,7 @@ Details:
 
 Expected current result:
 
-    115 passing
+    121 passing
 
 ## Run Real XEN Mainnet Fork Test
 

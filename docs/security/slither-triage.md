@@ -1,8 +1,25 @@
 # xEnchanted Crypto - Slither Static Analysis Triage
 
-Status: Work in progress  
-Tool: Slither 0.11.5  
+Status: Current through the immutable multichain Avalanche readiness checkpoint
+
+Tool: Slither 0.11.5
+
 Scope: production contracts, excluding node_modules, mocks, tests, cache, artifacts
+
+Latest production-only result:
+
+- 97 findings total;
+- 0 high;
+- 19 medium;
+- 18 low;
+- 60 informational;
+- 0 optimization.
+
+The latest Medium set contains only the accepted categories documented below:
+deterministic divide-before-multiply rounding, invariant/sentinel equality,
+guarded or trusted-call reentrancy patterns, and intentional partial tuple use
+in read-only preview functions. The profile refactor introduced no actionable
+High or Medium finding.
 
 ## Remediated findings
 

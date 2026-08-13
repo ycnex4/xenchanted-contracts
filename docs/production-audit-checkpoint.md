@@ -4,14 +4,30 @@ Status
 
 
 
-Current immutable multichain profile refactor is under final verification.
+The Avalanche immutable multichain contract/profile regression checkpoint is
+complete on the published deployment-readiness commit.
 
 
 
 Latest confirmed local test suite: 121 passing.
 
-The previous real-XEN fork baseline passed 2 tests. The final Ethereum and
-Avalanche fork reruns remain required after the immutable-profile diff is fixed.
+The final Avalanche real-aXEN fork run passed 2 tests, including
+`Core.mintWithXEN()` against the production aXEN burn callback. The Ethereum
+real-XEN fork baseline previously passed 2 tests; its final immutable-profile
+rerun remains required before this shared refactor is merged.
+
+Latest Avalanche deployment-readiness checks:
+
+- read-only C-Chain preflight passed at chain ID 43114;
+- full local suite passed with 121 tests;
+- real-aXEN fork integration passed with 2 tests;
+- eleven-transaction deployment ceremony simulation used 18,478,023 gas;
+- all eight production contracts remain below the 24,576-byte deployed-code limit;
+- Slither 0.11.5 production-only result: 97 findings (0 high, 19 medium,
+  18 low, 60 informational, 0 optimization), all in previously documented
+  categories;
+- `npm audit --omit=dev` reported zero vulnerabilities;
+- checked toolchain: Node.js 24.10.0, npm 11.6.1 and Hardhat 2.28.6.
 
 No mainnet deployment was executed by the profile refactor.
 
@@ -232,13 +248,13 @@ This document is not an independent third-party audit and is not formal verifica
 
 It is an internal smart contract security and protocol integrity review checkpoint supported by additional static analysis, local tests, and mainnet fork integration testing.
 
-Security hardening completed after review feedback:
+Historical security hardening completed after review feedback:
 
 Slither 0.11.5 production-filtered static analysis was run.
 
 Initial production-filtered Slither result: 111 findings.
 
-Final production-filtered Slither result: 81 findings.
+Post-hardening production-filtered Slither result: 81 findings.
 
 Final Slither high issues: 0.
 

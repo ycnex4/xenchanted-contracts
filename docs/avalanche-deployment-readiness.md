@@ -119,13 +119,13 @@ and wiring topology but does not replace the final real-aXEN fork run or a fresh
 live fee quote.
 
 The pre-immutable-profile 2026-08-13 fork run measured `18,171,361` total gas.
-The immutable-profile local run measured `18,475,370` total gas for all eleven
-transactions. The final real-aXEN fork run remains required before deployment.
-The live read-only preflight sampled `62,184,122` wei gas price, which would imply
-about `0.00113 AVAX` at that instant. The Hardhat fork environment returned a
-higher internal fee quote and estimated about `0.0194 AVAX`. Gas units are the
-useful stable result; the ceremony budget must use fresh live fee data and an
-explicit safety margin.
+The final published immutable-profile fork run measured `18,478,023` total gas
+for all eleven transactions. The final real-aXEN integration fork passed both
+metadata and `Core.mintWithXEN()` burn-callback tests. The read-only preflight
+sampled `60,565,443` wei gas price. The Hardhat fork environment returned an
+internal fee quote of `1,043,692,411` wei and estimated about `0.01929 AVAX`.
+Gas units are the useful stable result; the ceremony budget must use fresh live
+fee data and an explicit safety margin.
 
 ### `scripts/check-avalanche.js`
 
@@ -189,12 +189,8 @@ Use `npm ci`, not an unconstrained dependency refresh, for the reviewed lockfile
 
 ## Remaining Mainnet Blockers
 
-- complete the contract/profile refactor regression checkpoint;
 - prepare and fully test the Avalanche frontend before genesis;
-- refresh the Avalanche fork test against the final deployment commit;
-- rerun bytecode size, gas profile and Slither on the final commit;
 - review and reduce the npm deployment-toolchain vulnerability surface;
-- pin and record Node/npm/Hardhat versions used for the ceremony;
 - independently review the deploy and check scripts;
 - complete external audit or explicitly record the decision to deploy without it;
 - refresh live fee data and approve the AVAX deployment budget with margin;
