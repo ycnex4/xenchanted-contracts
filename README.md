@@ -19,7 +19,7 @@ Main flows:
 - Enchant: two same-level NFTs are burned to create a higher-level NFT.
 - Forge: user burns XNTD and sacrifices a Core L1 NFT to create a Forged NFT.
 - Stake: user burns a Core/Forged NFT into a Stake NFT position; on redeem, the original NFT is recreated and rewards are handled according to maturity rules.
-- Market: users can list and buy Core/Forged NFTs through an ETH-only escrow secondary market.
+- Market: users can list and buy Core/Forged NFTs through a native-currency escrow secondary market (ETH on Ethereum, AVAX on Avalanche).
 - Redeem: eligible NFTs can be burned to mint XNTD according to protocol rules.
 
 ## Repository Structure
@@ -30,7 +30,7 @@ Main flows:
       staking/    Stake NFT lifecycle contract
       tokens/     XNTD token contract
       lens/       Read-only protocol and tokenURI lenses
-      market/     ETH-only escrow secondary market for Core/Forged NFTs
+      market/     Native-currency escrow secondary market for Core/Forged NFTs
       mocks/      Test mocks
 
     test/
@@ -46,7 +46,7 @@ Main flows:
 
 Latest confirmed results:
 
-    Local Hardhat tests: 123 passing
+    Local Hardhat tests: 124 passing
     Mainnet fork real XEN integration test: 2 passing
     Avalanche fork real aXEN integration test: 2 passing
     Slither 0.11.5 production findings: 97 (High: 0)
@@ -56,6 +56,7 @@ Security documentation:
 
 - [Production audit checkpoint](docs/production-audit-checkpoint.md)
 - [Avalanche C-Chain deployment readiness](docs/avalanche-deployment-readiness.md)
+- [Avalanche C-Chain genesis deployment record](docs/deployments/avalanche-mainnet-genesis.md)
 - [Slither triage](docs/security/slither-triage.md)
 - [Real XEN mainnet fork validation](docs/security/mainnet-fork-xen.md)
 - [External review follow-ups](docs/security/external-review-followups.md)
@@ -78,7 +79,24 @@ Economic documentation:
 
 Important limitation:
 
-This repository has undergone internal review, static analysis triage, local testing, mainnet fork integration testing, bytecode size checking, and economic rationale documentation. This is not an independent third-party audit, not formal verification, and not a formal economic guarantee.
+This repository has undergone internal review, independent technical review, static analysis triage, local testing, mainnet fork integration testing, bytecode size checking, and economic rationale documentation. This is not a professional third-party audit, not formal verification, and not a formal economic guarantee.
+
+## Avalanche C-Chain Mainnet Deployment
+
+The chain-native Avalanche instance was deployed and finalized on 2026-08-14.
+
+- chain ID: `43114`;
+- deployment source commit: [`bd3847db8f23b8011db7c1c59eea6674357cbf30`](https://github.com/ycnex4/xenchanted-contracts/commit/bd3847db8f23b8011db7c1c59eea6674357cbf30);
+- Core: [`0x9F6f1F6883F00DB5e593Cfc02dd04A7319dA9922`](https://snowtrace.io/address/0x9F6f1F6883F00DB5e593Cfc02dd04A7319dA9922#code);
+- Avalanche XNTD: [`0x7F45490C069B166518A18EF663DB21cfdb2BA04D`](https://snowtrace.io/address/0x7F45490C069B166518A18EF663DB21cfdb2BA04D#code);
+- immutable launch profile: `100 XNTD / 100,000,000 aXEN / 60-day protocol halving / 120-day aXEN burn halving / 10–240 stake days`;
+- Core and Stake deployer rights are burned;
+- all eight contracts are source-verified on Snowtrace.
+
+The canonical addresses, deployment transactions, blocks, wiring transactions and
+post-deployment checks are recorded in
+[the Avalanche genesis deployment record](docs/deployments/avalanche-mainnet-genesis.md).
+The later documentation commits do not change the deployed bytecode source checkpoint.
 
 ## Slither Static Analysis
 
@@ -166,7 +184,7 @@ Details:
 
 Expected current result:
 
-    123 passing
+    124 passing
 
 ## Run Real XEN Mainnet Fork Test
 

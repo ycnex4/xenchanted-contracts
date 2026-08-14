@@ -2,12 +2,17 @@
 
 ## Status
 
-Avalanche-specific preflight, fork integration, deployment and post-deployment
-check paths are prepared for review. On 2026-08-13, the read-only live-network
-preflight passed and the real-aXEN Avalanche fork suite passed `2/2`.
+The chain-native XC instance was successfully deployed and finalized on
+Avalanche C-Chain Mainnet on 2026-08-14. All eight contracts passed the immediate
+read-only post-deployment checker, Core and Stake deployer rights are burned,
+XNTD is permanently bound to Forge, and all contract sources are verified on
+Snowtrace.
 
-No XC contract has been deployed to Avalanche by this work. This document is a
-readiness checkpoint, not a deployment record.
+The canonical public record is
+[the Avalanche genesis deployment record](deployments/avalanche-mainnet-genesis.md).
+The deployed bytecode source checkpoint is
+`bd3847db8f23b8011db7c1c59eea6674357cbf30`. This readiness document now
+preserves the pre-deployment controls and review history.
 
 ## Pinned Network Dependency
 
@@ -240,16 +245,22 @@ changed by this follow-up. After merge, the resulting new main commit becomes
 the only valid source checkpoint for deployment and all final tests, fork tests,
 gas profiling and live preflight must be repeated against it.
 
-## Remaining Mainnet Blockers
+## Post-Deployment Status
 
-- prepare and fully test the Avalanche frontend before genesis;
-- review and reduce the npm deployment-toolchain vulnerability surface;
-- independently review the deploy and check scripts;
-- explicitly record the decision to deploy with independent technical review but without a professional external audit;
-- refresh live fee data and approve the AVAX deployment budget with margin;
-- verify source code through the current Avalanche explorer flow;
-- update frontend network configuration, addresses, ABI and native-currency labels;
-- perform the immediate post-deploy read-only check before any public frontend is enabled.
+Completed:
+
+- independent technical review returned final `GO`;
+- deployment used dedicated, balance-limited deployer
+  `0xDE4148205f4a1f2597dcDe7912f1532B6f6E3A92`;
+- all eleven deployment and wiring transactions completed with three confirmations;
+- the immediate post-deployment checker passed every wiring, rights-burn,
+  Forge-binding, fresh-Market and immutable-economic assertion;
+- all eight contract sources were verified on Snowtrace;
+- the public genesis record was prepared from the completed runtime manifest.
+
+Remaining release work is frontend configuration and end-to-end testing against
+the canonical Avalanche addresses before the Avalanche UI is enabled publicly.
+Gateway transport remains a separate later scope.
 
 ## Market Currency Note
 
