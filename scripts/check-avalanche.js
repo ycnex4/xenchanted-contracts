@@ -92,18 +92,20 @@ async function main() {
     BigInt(AXEN_EXPECTED_DECIMALS)
   );
 
-  const core = (await ethers.getContractFactory("xEnchantedNFT")).attach(ADDR.Core);
-  const xntd = (await ethers.getContractFactory("XNTDToken")).attach(ADDR.XNTD);
-  const stake = (await ethers.getContractFactory("xEnchantedStake")).attach(ADDR.Stake);
-  const forge = (await ethers.getContractFactory("xEnchantedForge")).attach(ADDR.Forge);
-  const market = (await ethers.getContractFactory("XenchantedMarket")).attach(ADDR.Market);
-  const nftLens = (await ethers.getContractFactory("xEnchantedNFTLens")).attach(ADDR.NFTLens);
-  const tokenUriLens = (
-    await ethers.getContractFactory("xEnchantedTokenURILens")
-  ).attach(ADDR.TokenURILens);
-  const stakeTokenUriLens = (
-    await ethers.getContractFactory("xEnchantedStakeTokenURILens")
-  ).attach(ADDR.StakeTokenURILens);
+  const core = await ethers.getContractAt("xEnchantedNFT", ADDR.Core);
+  const xntd = await ethers.getContractAt("XNTDToken", ADDR.XNTD);
+  const stake = await ethers.getContractAt("xEnchantedStake", ADDR.Stake);
+  const forge = await ethers.getContractAt("xEnchantedForge", ADDR.Forge);
+  const market = await ethers.getContractAt("XenchantedMarket", ADDR.Market);
+  const nftLens = await ethers.getContractAt("xEnchantedNFTLens", ADDR.NFTLens);
+  const tokenUriLens = await ethers.getContractAt(
+    "xEnchantedTokenURILens",
+    ADDR.TokenURILens
+  );
+  const stakeTokenUriLens = await ethers.getContractAt(
+    "xEnchantedStakeTokenURILens",
+    ADDR.StakeTokenURILens
+  );
 
   console.log("=== CORE WIRING ===");
   assertEq("Core.XEN", await core.XEN(), AXEN_MAINNET);
