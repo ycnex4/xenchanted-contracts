@@ -1,0 +1,89 @@
+{
+  "schema": "xc-avalanche-deployment-v2",
+  "status": "complete",
+  "startedAt": "2026-08-14T00:00:25.407Z",
+  "source": {
+    "commit": "bd3847db8f23b8011db7c1c59eea6674357cbf30",
+    "branch": "main"
+  },
+  "network": {
+    "name": "Avalanche C-Chain Mainnet",
+    "chainId": "43114",
+    "nativeCurrency": "AVAX"
+  },
+  "deployer": "0xDE4148205f4a1f2597dcDe7912f1532B6f6E3A92",
+  "confirmations": 3,
+  "dependencies": {
+    "aXEN": "0xC0C5AA69Dbe4d6DDdfBc89c0957686ec60F24389"
+  },
+  "genesis": {
+    "mode": "fresh-avalanche-genesis",
+    "initialNominalXNTD": "100",
+    "initialXenBurnAXEN": "100000000",
+    "halvingIntervalSeconds": 5184000,
+    "xenBurnHalvingIntervalSeconds": 10368000,
+    "minStakeDays": 10,
+    "maxStakeDays": 240,
+    "genesisTimestamp": "1786665631"
+  },
+  "contracts": {
+    "Core": {
+      "address": "0x9F6f1F6883F00DB5e593Cfc02dd04A7319dA9922",
+      "deployTxHash": "0x3a3ee85139d512225432a55ff749937b8e13f29bf8ca996dbb4efeb1b995498c",
+      "deployBlock": 92752373
+    },
+    "XNTD": {
+      "address": "0x7F45490C069B166518A18EF663DB21cfdb2BA04D",
+      "deployTxHash": "0x872435868b7a35b494ef1ce4a61b8337c0740d79e1bb01cc72681d57b62960d9",
+      "deployBlock": 92752378
+    },
+    "Stake": {
+      "address": "0x3b9061ca65dc596d68851b0C457dA823959C1882",
+      "deployTxHash": "0x80a0334c4e4af6a5f7e71c6bcce37b456fa137b35c7ccf41abd1b51948043d84",
+      "deployBlock": 92752639
+    },
+    "Forge": {
+      "address": "0x23678b27557CA31fea54453b9ce481916cd99F87",
+      "deployTxHash": "0xcacbbb92bdd0d56cb69618d931830a00b725cd482550ef7c895452c5a4d2ad2c",
+      "deployBlock": 92752648
+    },
+    "Market": {
+      "address": "0xD2F3fc7FC217391a1CB96dDbC9F2d4fb518a80Ac",
+      "deployTxHash": "0x7b482280548a3953fa3edb80718f0423e4cf0433ff345df66f9e7282585389b3",
+      "deployBlock": 92752662
+    },
+    "NFTLens": {
+      "address": "0x94f9efB4561A01443D85042826140388F773ef4A",
+      "deployTxHash": "0x7a36c8cc9e1cd7dd728e8fefceff4d47d035a39b45587adeaa756685f8bbb8f2",
+      "deployBlock": 92752670
+    },
+    "TokenURILens": {
+      "address": "0x7E310135DC51aA0caaAa596b73C96134b797C752",
+      "deployTxHash": "0x7cfbafccd9682ea1b8e5c1fd42d74fdfc56fa28c08e0778ee2b2d6511eb09c13",
+      "deployBlock": 92752673
+    },
+    "StakeTokenURILens": {
+      "address": "0xcA03ACa93390d83D561E0612f38FfAEc5219BBD8",
+      "deployTxHash": "0x57bd8aef4ef811f0fceb9138997bb1c9f915c7c6fbd14f516b60a062fb55fcac",
+      "deployBlock": 92752678
+    }
+  },
+  "transactions": [
+    {
+      "label": "core-token-uri-lens-set",
+      "txHash": "0xc5df1519f6e249de276aa883904d09bbcd7c104fd1957bb69f7bc35467ef2c04",
+      "blockNumber": 92752698
+    },
+    {
+      "label": "stake-token-uri-lens-set-and-stake-deployer-burned",
+      "txHash": "0x23d441ff9aaaa0bbf7ab3b306e33384422cdd2166d04c2ea60758667da4d08a0",
+      "blockNumber": 92752701
+    },
+    {
+      "label": "core-initialized-and-deployer-rights-burned",
+      "txHash": "0xacf44ee7cc5a70e1b7aca9dcbad953299a42c4f3ae5d2d7911dc9f45bf169108",
+      "blockNumber": 92752707
+    }
+  ],
+  "completedAt": "2026-08-14T00:06:53.060Z"
+}
