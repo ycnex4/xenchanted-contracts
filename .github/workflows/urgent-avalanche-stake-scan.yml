@@ -1,3 +1,4 @@
+# trigger after base workflow installation
 name: Urgent Avalanche stake scan
 
 on:
@@ -62,7 +63,6 @@ jobs:
             const topics = log.topics || [];
             const ws = words(log.data);
 
-            // Staked(address indexed user,uint256 indexed tokenId,...9 non-indexed fields)
             if (topics.length === 3 && ws.length === 9) {
               const tokenId = topicUint(topics[2]);
               const item = {
@@ -87,7 +87,6 @@ jobs:
               continue;
             }
 
-            // StakeRedeemed(address indexed user,uint256 indexed tokenId,bool,uint256,uint256)
             if (topics.length === 3 && ws.length === 3) {
               const tokenId = topicUint(topics[2]);
               const current = positions.get(tokenId);
@@ -99,7 +98,6 @@ jobs:
               continue;
             }
 
-            // ERC721 Transfer(address indexed from,address indexed to,uint256 indexed tokenId)
             if (topics.length === 4 && ws.length === 0) {
               const tokenId = topicUint(topics[3]);
               const current = positions.get(tokenId);
