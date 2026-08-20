@@ -1,0 +1,124 @@
+name: Urgent Avalanche stake scan
+
+on:
+  push:
+    branches:
+      - urgent-avalanche-stake-scan
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scan deployed Stake events
+        shell: bash
+        run: |
+          node <<'NODE'
+          const STAKE = "0x3b9061ca65dc596d68851b0C457dA823959C1882";
+          const FROM_BLOCK = 92752639;
+          const url = new URL("https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api");
+          url.searchParams.set("module", "logs");
+          url.searchParams.set("action", "getLogs");
+          url.searchParams.set("address", STAKE);
+          url.searchParams.set("fromBlock", String(FROM_BLOCK));
+          url.searchParams.set("toBlock", "latest");
+          url.searchParams.set("page", "1");
+          url.searchParams.set("offset", "1000");
+
+          function words(data) {
+            const hex = (data || "0x").slice(2);
+            if (hex.length % 64 !== 0) throw new Error(`bad data length ${hex.length}`);
+            const out = [];
+            for (let i = 0; i < hex.length; i += 64) out.push(BigInt("0x" + hex.slice(i, i + 64)));
+            return out;
+          }
+
+          function topicAddress(topic) {
+            return "0x" + topic.slice(-40);
+          }
+
+          function topicUint(topic) {
+            return BigInt(topic).toString();
+          }
+
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`Routescan HTTP ${res.status}: ${await res.text()}`);
+          const body = await res.json();
+          if (!Array.isArray(body.result)) throw new Error(`Unexpected Routescan response: ${JSON.stringify(body)}`);
+
+          const logs = [...body.result].sort((a, b) => {
+            const ba = BigInt(a.blockNumber), bb = BigInt(b.blockNumber);
+            if (ba < bb) return -1;
+            if (ba > bb) return 1;
+            return Number(BigInt(a.logIndex) - BigInt(b.logIndex));
+          });
+
+          const positions = new Map();
+          const allStakes = [];
+
+          for (const log of logs) {
+            const topics = log.topics || [];
+            const ws = words(log.data);
+
+            // Staked(address indexed user,uint256 indexed tokenId,...9 non-indexed fields)
+            if (topics.length === 3 && ws.length === 9) {
+              const tokenId = topicUint(topics[2]);
+              const item = {
+                tokenId,
+                ownerAtStake: topicAddress(topics[1]),
+                isForged: ws[0] !== 0n,
+                level: Number(ws[1]),
+                nominalRaw: ws[2].toString(),
+                durationDays: Number(ws[3]),
+                startTs: Number(ws[4]),
+                endTs: Number(ws[5]),
+                baseAprBps: Number(ws[6]),
+                totalAprBps: Number(ws[7]),
+                expectedRewardRaw: ws[8].toString(),
+                blockNumber: Number(BigInt(log.blockNumber)),
+                txHash: log.transactionHash,
+                active: true,
+                currentOwner: topicAddress(topics[1]),
+              };
+              positions.set(tokenId, item);
+              allStakes.push({ ...item });
+              continue;
+            }
+
+            // StakeRedeemed(address indexed user,uint256 indexed tokenId,bool,uint256,uint256)
+            if (topics.length === 3 && ws.length === 3) {
+              const tokenId = topicUint(topics[2]);
+              const current = positions.get(tokenId);
+              if (current) {
+                current.active = false;
+                current.currentOwner = null;
+                current.redeemTxHash = log.transactionHash;
+              }
+              continue;
+            }
+
+            // ERC721 Transfer(address indexed from,address indexed to,uint256 indexed tokenId)
+            if (topics.length === 4 && ws.length === 0) {
+              const tokenId = topicUint(topics[3]);
+              const current = positions.get(tokenId);
+              if (current && current.active) {
+                const to = topicAddress(topics[2]);
+                current.currentOwner = /^0x0{40}$/i.test(to) ? null : to;
+              }
+            }
+          }
+
+          const active = [...positions.values()].filter((x) => x.active);
+          const affectedActive = active.filter((x) => x.durationDays < 30);
+          const affectedEver = allStakes.filter((x) => x.durationDays < 30);
+
+          console.log("=== XC AVALANCHE STAKE SCAN ===");
+          console.log(`Stake contract: ${STAKE}`);
+          console.log(`Logs returned: ${logs.length}`);
+          console.log(`Stake opens found: ${allStakes.length}`);
+          console.log(`Active stake positions: ${active.length}`);
+          console.log(`Active positions below 30 days: ${affectedActive.length}`);
+          console.log(`All stake opens below 30 days: ${affectedEver.length}`);
+          console.log("ACTIVE_STAKES_JSON=" + JSON.stringify(active));
+          console.log("AFFECTED_ACTIVE_JSON=" + JSON.stringify(affectedActive));
+          console.log("AFFECTED_EVER_JSON=" + JSON.stringify(affectedEver));
+          NODE
