@@ -1,0 +1,1 @@
+Temporary read-only diagnostic trigger for Avalanche Stake duration scan. Do not merge.
